@@ -1,0 +1,22 @@
+{
+  "name": "@pixengine/adapter-engine-sharp",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "sharp": "^0.33.0"
+  },
+  "peerDependencies": {
+    "@pixengine/core": "workspace:*"
+  }
+}
