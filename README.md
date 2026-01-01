@@ -1,2 +1,66 @@
-# pixengine
-Policy-first image optimization engine with pluggable storage adapters.
+# 🌌 PixEngine
+
+[English](README_EN.md) | [한국어](README_KR.md)
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Status: Active Development](https://img.shields.io/badge/Status-Active%20Development-orange.svg)](#)
+
+**PixEngine** is a high-performance, **policy-first image optimization engine** designed to optimize images through explicit orchestration. Unlike traditional "black-box" tools, PixEngine puts your business logic at the center of the image pipeline.
+
+---
+
+## 🔥 Why PixEngine?
+
+- **Policy-First**: Decisions are driven by testable policies, not opaque configurations.
+- **Explicit Orchestration**: You control *when* and *how* images are transformed and where they are stored.
+- **Pluggable Architecture**: Easily swap storage providers (S3, Local) and processing engines (Sharp).
+- **Zero-Vendor Lock-in**: Works with your existing infrastructure, no proprietary CDN required.
+
+---
+
+## 🏗️ Architecture at a Glance
+
+```text
+pixengine/
+├─ packages/
+│  ├─ core/                       # Brain: Policy evaluation & orchestration
+│  ├─ adapter-storage-local/      # Local storage implementation
+│  ├─ adapter-storage-s3/         # AWS S3 storage implementation
+│  ├─ adapter-engine-sharp/       # Sharp-based transformation engine
+│  └─ middleware-*                # Express & Next.js integrations
+└─ examples/                      # Reference implementations
+```
+
+---
+
+## ⚙️ Core Concepts
+
+1.  **Policies**: Code-based rules that inspect image metadata and decide which variants (sizes, formats) to generate.
+2.  **Adapters**: Standardized interfaces for storage and engines, making the core logic infrastructure-agnostic.
+3.  **Variants**: Managed versions of a single source image (e.g., `original`, `thumbnail.webp`, `banner.avif`).
+
+---
+
+## 🚀 Status & Roadmap
+
+PixEngine is currently in **Active Development (Alpha)**.
+
+- [x] Monorepo structure & Core orchestration
+- [x] Sharp Engine & Local Storage Adapters
+- [ ] Policy DSL Specification
+- [ ] AWS S3 & Cloud Middleware
+- [ ] Smart Variants & Metadata Extraction
+
+---
+
+## 🤝 Community
+
+For detailed documentation, please refer to:
+- [English Documentation (Details)](README_EN.md)
+- [한국어 문서 (상세)](README_KR.md)
+
+---
+
+## 📄 License
+
+MIT © 2025 PixEngine Team
