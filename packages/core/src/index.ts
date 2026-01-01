@@ -28,11 +28,30 @@ export interface StorageAdapter {
 }
 
 export interface TransformEngine {
-  probe(input: PixEngineInput): Promise<{ width: number; height: number; format: string }>;
+  probe(
+    input: PixEngineInput,
+  ): Promise<{ width: number; height: number; format: string }>;
+
+  transform(args: {
+    input: PixEngineInput;
+    width?: number;
+    height?: number;
+    format?: "webp" | "avif" | "jpeg" | "png";
+    quality?: number;
+  }): Promise<{
+    bytes: Uint8Array;
+    width: number;
+    height: number;
+    format: string;
+  }>;
 }
 
 export type PolicyDecision = {
-  variants: Array<{ width: number; format: "webp" | "avif" | "jpeg" | "png"; quality?: number }>;
+  variants: Array<{
+    width: number;
+    format: "webp" | "avif" | "jpeg" | "png";
+    quality?: number;
+  }>;
 };
 
 export type Policy = (ctx: {
