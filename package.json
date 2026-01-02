@@ -4,7 +4,7 @@
   "packageManager": "pnpm@10.0.0",
   "description": "A high-performance image optimization engine with policy-based orchestration.",
   "scripts": {
-    "build": "pnpm -r build",
+    "build": "pnpm --filter @pixengine/core build && pnpm --filter @pixengine/adapter-* build",
     "dev": "pnpm -r dev",
     "test": "pnpm -r test",
     "test:run": "pnpm -r test:run",
