@@ -67,7 +67,14 @@ importers:
 
   packages/adapter-storage-s3: {}
 
-  packages/core: {}
+  packages/core:
+    devDependencies:
+      '@pixengine/adapter-engine-sharp':
+        specifier: workspace:*
+        version: link:../adapter-engine-sharp
+      '@pixengine/adapter-storage-local':
+        specifier: workspace:*
+        version: link:../adapter-storage-local
 
   packages/middleware-express: {}
 
