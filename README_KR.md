@@ -95,11 +95,11 @@ const ProductImagePolicy = {
 
 ## 🚀 로드맵
 
-### 1단계: 기반 구축 (진행 중)
+### 1단계: 기반 구축 ✅ 완료
 - [x] 핵심 오케스트레이션 로직
 - [x] Sharp 엔진 어댑터
 - [x] 로컬 저장소 어댑터
-- [ ] 기본 정책 DSL 설계
+- [x] TDD 기반 개발 및 E2E 테스트
 
 ### 2단계: 생태계 확장
 - [ ] AWS S3 저장소 어댑터
@@ -110,6 +110,157 @@ const ProductImagePolicy = {
 - [ ] 스마트 크로핑 (얼굴 인식 등)
 - [ ] 이미지 "Lighthouse" 점수 예측
 - [ ] 온디맨드(JIT) 실시간 변환 어댑터
+
+---
+
+## 🚀 시작하기
+
+### 설치
+
+```bash
+# pnpm workspace를 사용하는 monorepo
+pnpm install
+```
+
+### 빠른 시작
+
+```typescript
+import { optimize } from "@pixengine/core";
+import { SharpEngine } from "@pixengine/adapter-engine-sharp";
+import { LocalStorage } from "@pixengine/adapter-storage-local";
+import { readFile } from "fs/promises";
+
+// 이미지 로드
+const imageBytes = await readFile("./photo.jpg");
+
+// 최적화 실행
+const manifest = await optimize({
+  input: {
+    filename: "photo.jpg",
+    bytes: new Uint8Array(imageBytes),
+    contentType: "image/jpeg",
+  },
+
+  // 정책: 2개의 WebP variant 생성
+  policy: () => ({
+    variants: [
+      { width: 200, format: "webp", quality: 80 },  // 썸네일
+      { width: 800, format: "webp", quality: 85 },  // 중간 크기
+    ],
+  }),
+
+  // Sharp 엔진 사용
+  engine: new SharpEngine(),
+
+  // 로컬 파일 시스템에 저장
+  storage: new LocalStorage({
+    baseDir: "./uploads",
+    baseUrl: "http://localhost:3000/images",
+  }),
+});
+
+console.log(manifest);
+// {
+//   original: { width: 1920, height: 1080, format: "jpeg", bytes: 245678 },
+//   variants: [
+//     { key: "variants/photo_200w.webp", url: "...", width: 200, height: 112, ... },
+//     { key: "variants/photo_800w.webp", url: "...", width: 800, height: 450, ... }
+//   ]
+// }
+```
+
+---
+
+## 📚 API 문서
+
+### `optimize(options)`
+
+이미지 최적화 파이프라인을 실행합니다.
+
+**Parameters:**
+- `input: PixEngineInput` - 입력 이미지
+  - `filename: string` - 파일명
+  - `bytes: Uint8Array` - 이미지 바이트 데이터
+  - `contentType: string` - MIME 타입
+- `policy: Policy` - 최적화 정책 함수
+- `engine: TransformEngine` - 이미지 처리 엔진
+- `storage: StorageAdapter` - 저장소 어댑터
+
+**Returns:** `Promise<Manifest>`
+- `original` - 원본 이미지 메타데이터
+- `variants` - 생성된 변체 목록
+
+### 정책 (Policy)
+
+동적으로 최적화 전략을 결정하는 함수:
+
+```typescript
+type Policy = (ctx: {
+  width: number;
+  height: number;
+  bytes: number;
+  format: string;
+}) => PolicyDecision;
+
+type PolicyDecision = {
+  variants: Array<{
+    width: number;
+    format: "webp" | "avif" | "jpeg" | "png";
+    quality?: number;
+  }>;
+};
+```
+
+**예시: 동적 정책**
+
+```typescript
+const smartPolicy: Policy = (ctx) => {
+  // 큰 이미지: 더 많은 variant 생성
+  if (ctx.width > 2000) {
+    return {
+      variants: [
+        { width: 400, format: "webp" },
+        { width: 800, format: "webp" },
+        { width: 1200, format: "avif" },
+      ],
+    };
+  }
+
+  // 작은 이미지: 간단하게
+  return {
+    variants: [
+      { width: 400, format: "webp" },
+    ],
+  };
+};
+```
+
+### 어댑터 (Adapters)
+
+#### SharpEngine
+
+Sharp 라이브러리 기반 이미지 처리:
+
+```typescript
+import { SharpEngine } from "@pixengine/adapter-engine-sharp";
+
+const engine = new SharpEngine();
+```
+
+**지원 포맷:** WebP, AVIF, JPEG, PNG
+
+#### LocalStorage
+
+로컬 파일 시스템 저장:
+
+```typescript
+import { LocalStorage } from "@pixengine/adapter-storage-local";
+
+const storage = new LocalStorage({
+  baseDir: "./public/uploads",
+  baseUrl: "https://example.com/uploads",
+});
+```
 
 ---
 
