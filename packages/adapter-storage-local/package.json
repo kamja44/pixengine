@@ -1,7 +1,25 @@
 {
   "name": "@pixengine/adapter-storage-local",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
+  "description": "Local filesystem storage adapter for PixEngine",
+  "keywords": [
+    "pixengine",
+    "storage",
+    "adapter",
+    "local",
+    "filesystem"
+  ],
+  "author": "PixEngine Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pixengine/pixengine.git",
+    "directory": "packages/adapter-storage-local"
+  },
+  "bugs": {
+    "url": "https://github.com/pixengine/pixengine/issues"
+  },
+  "homepage": "https://github.com/pixengine/pixengine#readme",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -13,12 +31,10 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "clean": "rimraf dist",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "prepublishOnly": "pnpm build && pnpm test:run"
   },
   "peerDependencies": {
-    "@pixengine/core": "workspace:*"
-  },
-  "devDependencies": {
-    "@pixengine/core": "workspace:*"
+    "@pixengine/core": "^0.1.0"
   }
 }
