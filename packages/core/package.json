@@ -14,10 +14,5 @@
     "clean": "rimraf dist",
     "test": "vitest",
     "test:run": "vitest run"
-  },
-  "devDependencies": {
-    "sharp": "^0.33.0",
-    "@pixengine/adapter-engine-sharp": "workspace:*",
-    "@pixengine/adapter-storage-local": "workspace:*"
   }
 }

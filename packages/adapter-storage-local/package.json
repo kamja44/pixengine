@@ -17,5 +17,8 @@
   },
   "peerDependencies": {
     "@pixengine/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@pixengine/core": "workspace:*"
   }
 }
