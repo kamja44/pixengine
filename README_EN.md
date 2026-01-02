@@ -95,11 +95,11 @@ The repository is structured as a monorepo to ensure clean boundaries:
 
 ## 🚀 Roadmap
 
-### Phase 1: Foundation (Current)
+### Phase 1: Foundation ✅ Completed
 - [x] Core Orchestration Logic
 - [x] Sharp Engine Adapter
 - [x] Local Storage Adapter
-- [ ] Basic Policy DSL
+- [x] TDD-based Development & E2E Tests
 
 ### Phase 2: Ecosystem
 - [ ] AWS S3 Storage Adapter
@@ -110,6 +110,157 @@ The repository is structured as a monorepo to ensure clean boundaries:
 - [ ] Smart Cropping (Face Detection)
 - [ ] Image "Lighthouse" score prediction
 - [ ] On-demand (JIT) delivery adapter
+
+---
+
+## 🚀 Getting Started
+
+### Installation
+
+```bash
+# Using pnpm workspace (monorepo)
+pnpm install
+```
+
+### Quick Start
+
+```typescript
+import { optimize } from "@pixengine/core";
+import { SharpEngine } from "@pixengine/adapter-engine-sharp";
+import { LocalStorage } from "@pixengine/adapter-storage-local";
+import { readFile } from "fs/promises";
+
+// Load image
+const imageBytes = await readFile("./photo.jpg");
+
+// Run optimization
+const manifest = await optimize({
+  input: {
+    filename: "photo.jpg",
+    bytes: new Uint8Array(imageBytes),
+    contentType: "image/jpeg",
+  },
+
+  // Policy: Generate 2 WebP variants
+  policy: () => ({
+    variants: [
+      { width: 200, format: "webp", quality: 80 },  // Thumbnail
+      { width: 800, format: "webp", quality: 85 },  // Medium size
+    ],
+  }),
+
+  // Use Sharp engine
+  engine: new SharpEngine(),
+
+  // Save to local filesystem
+  storage: new LocalStorage({
+    baseDir: "./uploads",
+    baseUrl: "http://localhost:3000/images",
+  }),
+});
+
+console.log(manifest);
+// {
+//   original: { width: 1920, height: 1080, format: "jpeg", bytes: 245678 },
+//   variants: [
+//     { key: "variants/photo_200w.webp", url: "...", width: 200, height: 112, ... },
+//     { key: "variants/photo_800w.webp", url: "...", width: 800, height: 450, ... }
+//   ]
+// }
+```
+
+---
+
+## 📚 API Documentation
+
+### `optimize(options)`
+
+Executes the image optimization pipeline.
+
+**Parameters:**
+- `input: PixEngineInput` - Input image
+  - `filename: string` - File name
+  - `bytes: Uint8Array` - Image byte data
+  - `contentType: string` - MIME type
+- `policy: Policy` - Optimization policy function
+- `engine: TransformEngine` - Image processing engine
+- `storage: StorageAdapter` - Storage adapter
+
+**Returns:** `Promise<Manifest>`
+- `original` - Original image metadata
+- `variants` - List of generated variants
+
+### Policy
+
+A function that dynamically determines optimization strategy:
+
+```typescript
+type Policy = (ctx: {
+  width: number;
+  height: number;
+  bytes: number;
+  format: string;
+}) => PolicyDecision;
+
+type PolicyDecision = {
+  variants: Array<{
+    width: number;
+    format: "webp" | "avif" | "jpeg" | "png";
+    quality?: number;
+  }>;
+};
+```
+
+**Example: Dynamic Policy**
+
+```typescript
+const smartPolicy: Policy = (ctx) => {
+  // Large images: Generate more variants
+  if (ctx.width > 2000) {
+    return {
+      variants: [
+        { width: 400, format: "webp" },
+        { width: 800, format: "webp" },
+        { width: 1200, format: "avif" },
+      ],
+    };
+  }
+
+  // Small images: Keep it simple
+  return {
+    variants: [
+      { width: 400, format: "webp" },
+    ],
+  };
+};
+```
+
+### Adapters
+
+#### SharpEngine
+
+Sharp library-based image processing:
+
+```typescript
+import { SharpEngine } from "@pixengine/adapter-engine-sharp";
+
+const engine = new SharpEngine();
+```
+
+**Supported Formats:** WebP, AVIF, JPEG, PNG
+
+#### LocalStorage
+
+Local filesystem storage:
+
+```typescript
+import { LocalStorage } from "@pixengine/adapter-storage-local";
+
+const storage = new LocalStorage({
+  baseDir: "./public/uploads",
+  baseUrl: "https://example.com/uploads",
+});
+```
 
 ---
 
