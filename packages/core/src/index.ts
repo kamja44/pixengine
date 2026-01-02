@@ -61,11 +61,81 @@ export type Policy = (ctx: {
   format: string;
 }) => PolicyDecision;
 
-export async function optimize(_args: {
+export async function optimize(args: {
   input: PixEngineInput;
   policy: Policy;
   engine: TransformEngine;
   storage: StorageAdapter;
 }): Promise<Manifest> {
-  throw new Error("Not implemented yet");
+  const { input, policy, engine, storage } = args;
+
+  // 1. Analyze original image (probe)
+  const metadata = await engine.probe(input);
+
+  // 2. Evaluate policy
+  const decision = policy({
+    width: metadata.width,
+    height: metadata.height,
+    bytes: input.bytes.length,
+    format: metadata.format,
+  });
+
+  // 3. Save original
+  const originalKey = `original/${input.filename}`;
+  await storage.put({
+    key: originalKey,
+    bytes: input.bytes,
+    contentType: input.contentType,
+    meta: metadata,
+  });
+
+  // 4. Generate variants
+  const variants: Variant[] = [];
+
+  for (const variantSpec of decision.variants) {
+    // Perform transformation
+    const transformed = await engine.transform({
+      input,
+      width: variantSpec.width,
+      format: variantSpec.format,
+      quality: variantSpec.quality,
+    });
+
+    // Generate variant key (e.g., "variants/test_200w.webp")
+    const baseFilename = input.filename.replace(/\.[^.]+$/, "");
+    const variantKey = `variants/${baseFilename}_${variantSpec.width}w.${variantSpec.format}`;
+
+    // Save
+    const variantResult = await storage.put({
+      key: variantKey,
+      bytes: transformed.bytes,
+      contentType: `image/${variantSpec.format}`,
+      meta: {
+        width: transformed.width,
+        height: transformed.height,
+        format: transformed.format,
+      },
+    });
+
+    // Add variant info
+    variants.push({
+      key: variantKey,
+      url: variantResult.url,
+      width: transformed.width,
+      height: transformed.height,
+      format: transformed.format,
+      bytes: transformed.bytes.length,
+    });
+  }
+
+  // 5. Return manifest
+  return {
+    original: {
+      width: metadata.width,
+      height: metadata.height,
+      format: metadata.format,
+      bytes: input.bytes.length,
+    },
+    variants,
+  };
 }
