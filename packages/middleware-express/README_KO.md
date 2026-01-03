@@ -1,20 +1,20 @@
 # @pixengine/middleware-express
 
-**English** | [한국어](README_KO.md)
+[English](README.md) | **한국어**
 
-Express.js middleware for PixEngine image optimization.
+PixEngine 이미지 최적화를 위한 Express.js 미들웨어입니다.
 
-## Installation
+## 설치
 
 ```bash
 npm install @pixengine/middleware-express @pixengine/core
-# or
+# 또는
 pnpm add @pixengine/middleware-express @pixengine/core
-# or
+# 또는
 yarn add @pixengine/middleware-express @pixengine/core
 ```
 
-## Quick Start
+## 빠른 시작
 
 ```typescript
 import express from 'express';
@@ -42,7 +42,7 @@ app.use('/uploads', express.static('./public/uploads'));
 app.listen(3000);
 ```
 
-**Response:**
+**응답:**
 ```json
 {
   "original": {
@@ -80,46 +80,46 @@ app.listen(3000);
 }
 ```
 
-## Features
+## 주요 기능
 
-- 🚀 **Drop-in Express Middleware**: Simple factory function pattern
-- 📤 **Multer Integration**: Works seamlessly with multer file uploads
-- 🎨 **Automatic Optimization**: Generates responsive image variants automatically
-- 📦 **Default Policy**: Sensible defaults (400w, 800w, 1200w WebP images)
-- ⚙️ **Customizable**: Override policy for custom image variants
-- 🔒 **Type-Safe**: Full TypeScript support
-- ✅ **Auto JSON Response**: Returns manifest directly to client
+- 🚀 **손쉬운 통합**: 간단한 팩토리 함수 패턴
+- 📤 **Multer 통합**: multer 파일 업로드와 완벽하게 작동
+- 🎨 **자동 최적화**: 반응형 이미지 변형을 자동으로 생성
+- 📦 **기본 정책**: 합리적인 기본값 (400w, 800w, 1200w WebP 이미지)
+- ⚙️ **커스터마이징**: 커스텀 이미지 변형을 위한 정책 오버라이드
+- 🔒 **타입 안전성**: 완벽한 TypeScript 지원
+- ✅ **자동 JSON 응답**: manifest를 클라이언트에 직접 반환
 
 ## API
 
 ### `pixEngineMiddleware(config)`
 
-Factory function that creates an Express middleware for image optimization.
+이미지 최적화를 위한 Express 미들웨어를 생성하는 팩토리 함수입니다.
 
-#### Parameters
+#### 파라미터
 
 ```typescript
 interface PixEngineMiddlewareConfig {
-  engine: TransformEngine;    // Required: Image processing engine
-  storage: StorageAdapter;     // Required: Storage adapter
-  policy?: Policy;             // Optional: Custom variant policy
+  engine: TransformEngine;    // 필수: 이미지 처리 엔진
+  storage: StorageAdapter;     // 필수: 스토리지 어댑터
+  policy?: Policy;             // 선택: 커스텀 변형 정책
 }
 ```
 
-**Required:**
-- `engine: TransformEngine` - Image processing engine (e.g., `SharpEngine`)
-- `storage: StorageAdapter` - Storage adapter (e.g., `LocalStorage`, S3, etc.)
+**필수:**
+- `engine: TransformEngine` - 이미지 처리 엔진 (예: `SharpEngine`)
+- `storage: StorageAdapter` - 스토리지 어댑터 (예: `LocalStorage`, S3 등)
 
-**Optional:**
-- `policy?: Policy` - Custom policy function to define image variants
+**선택:**
+- `policy?: Policy` - 이미지 변형을 정의하는 커스텀 정책 함수
 
-#### Returns
+#### 반환값
 
-`RequestHandler` - Express middleware function
+`RequestHandler` - Express 미들웨어 함수
 
-### Default Policy
+### 기본 정책
 
-The middleware provides a default responsive image policy:
+미들웨어는 기본 반응형 이미지 정책을 제공합니다:
 
 ```typescript
 export const defaultPolicy: Policy = (ctx) => ({
@@ -131,11 +131,11 @@ export const defaultPolicy: Policy = (ctx) => ({
 });
 ```
 
-This generates three WebP variants at different widths, suitable for responsive web images.
+반응형 웹 이미지에 적합한 세 가지 너비의 WebP 변형을 생성합니다.
 
-## Usage Examples
+## 사용 예제
 
-### Basic Usage with Default Policy
+### 기본 정책 사용
 
 ```typescript
 import express from 'express';
@@ -163,7 +163,7 @@ app.use('/uploads', express.static('./public/uploads'));
 app.listen(3000);
 ```
 
-### Custom Policy
+### 커스텀 정책
 
 ```typescript
 import { pixEngineMiddleware } from '@pixengine/middleware-express';
@@ -190,7 +190,7 @@ app.post(
 );
 ```
 
-### Context-Based Policy
+### 컨텍스트 기반 정책
 
 ```typescript
 app.post(
@@ -203,10 +203,10 @@ app.post(
       baseUrl: 'http://localhost:3000/uploads',
     }),
     policy: (ctx) => {
-      // Access original image metadata
+      // 원본 이미지 메타데이터 접근
       const { width, height, format } = ctx.original;
 
-      // Generate variants based on original size
+      // 원본 크기에 따라 변형 생성
       if (width > 2000) {
         return {
           variants: [
@@ -217,7 +217,7 @@ app.post(
         };
       }
 
-      // Smaller originals get fewer variants
+      // 작은 원본은 더 적은 변형 생성
       return {
         variants: [
           { width: 400, format: 'webp', quality: 80 },
@@ -229,7 +229,7 @@ app.post(
 );
 ```
 
-### TypeScript Usage
+### TypeScript 사용
 
 ```typescript
 import type { Request, Response, NextFunction } from 'express';
@@ -247,12 +247,12 @@ const config: PixEngineMiddlewareConfig = {
 app.post('/upload', upload.single('image'), pixEngineMiddleware(config));
 ```
 
-## Error Handling
+## 에러 처리
 
-The middleware handles errors automatically:
+미들웨어는 에러를 자동으로 처리합니다:
 
 ### 400 Bad Request
-Returned when no file is uploaded:
+파일이 업로드되지 않았을 때 반환:
 
 ```json
 {
@@ -261,7 +261,7 @@ Returned when no file is uploaded:
 ```
 
 ### 500 Internal Server Error
-Returned when optimization fails:
+최적화가 실패했을 때 반환:
 
 ```json
 {
@@ -270,9 +270,9 @@ Returned when optimization fails:
 }
 ```
 
-### Custom Error Handling
+### 커스텀 에러 처리
 
-You can add your own error handling middleware after the PixEngine middleware:
+PixEngine 미들웨어 뒤에 자체 에러 처리 미들웨어를 추가할 수 있습니다:
 
 ```typescript
 app.post(
@@ -289,28 +289,28 @@ app.post(
 );
 ```
 
-## Requirements
+## 요구사항
 
 - **Node.js**: >= 18.0.0
 - **Express**: ^4.18.0 || ^5.0.0
-- **Multer**: For file upload handling (user-provided)
+- **Multer**: 파일 업로드 처리용 (사용자 제공)
 - **PixEngine Core**: @pixengine/core
-- **Transform Engine**: e.g., @pixengine/adapter-engine-sharp
-- **Storage Adapter**: e.g., @pixengine/adapter-storage-local
+- **Transform Engine**: 예: @pixengine/adapter-engine-sharp
+- **Storage Adapter**: 예: @pixengine/adapter-storage-local
 
-## How It Works
+## 작동 방식
 
-1. **User uploads file** via multer middleware
-2. **PixEngine middleware** receives `req.file`
-3. **Extracts image data** (filename, bytes, contentType)
-4. **Calls `optimize()`** with configured engine, storage, and policy
-5. **Returns manifest** as JSON response automatically
+1. **사용자가 파일 업로드** multer 미들웨어를 통해
+2. **PixEngine 미들웨어**가 `req.file`을 받음
+3. **이미지 데이터 추출** (filename, bytes, contentType)
+4. **`optimize()` 호출** 설정된 engine, storage, policy와 함께
+5. **manifest를 JSON 응답으로 자동 반환**
 
 ```
-Client → Multer → PixEngine Middleware → optimize() → Storage → JSON Response
+클라이언트 → Multer → PixEngine 미들웨어 → optimize() → Storage → JSON 응답
 ```
 
-## Integration with Other Storage Adapters
+## 다른 스토리지 어댑터와 통합
 
 ### AWS S3 Storage
 
@@ -351,17 +351,17 @@ app.post(
 );
 ```
 
-## Best Practices
+## 모범 사례
 
-### 1. Use Memory Storage for Multer
+### 1. Multer에 메모리 스토리지 사용
 
 ```typescript
 const upload = multer({ storage: multer.memoryStorage() });
 ```
 
-This keeps uploaded files in memory, which is ideal since PixEngine processes them immediately.
+업로드된 파일을 메모리에 유지하므로 PixEngine이 즉시 처리할 수 있습니다.
 
-### 2. Add File Size Limits
+### 2. 파일 크기 제한 추가
 
 ```typescript
 const upload = multer({
@@ -372,7 +372,7 @@ const upload = multer({
 });
 ```
 
-### 3. Validate File Types
+### 3. 파일 타입 검증
 
 ```typescript
 const upload = multer({
@@ -381,15 +381,15 @@ const upload = multer({
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
     } else {
-      cb(new Error('Only image files are allowed'));
+      cb(new Error('이미지 파일만 허용됩니다'));
     }
   },
 });
 ```
 
-### 4. Set Appropriate baseUrl
+### 4. 적절한 baseUrl 설정
 
-For production, use your CDN or domain:
+프로덕션에서는 CDN이나 도메인을 사용하세요:
 
 ```typescript
 storage: new LocalStorage({
@@ -398,7 +398,7 @@ storage: new LocalStorage({
 })
 ```
 
-### 5. Use Environment Variables
+### 5. 환경 변수 사용
 
 ```typescript
 const config: PixEngineMiddlewareConfig = {
@@ -410,11 +410,11 @@ const config: PixEngineMiddlewareConfig = {
 };
 ```
 
-## License
+## 라이선스
 
 MIT © PixEngine Team
 
-## Links
+## 링크
 
 - [PixEngine Core](https://www.npmjs.com/package/@pixengine/core)
 - [Sharp Engine Adapter](https://www.npmjs.com/package/@pixengine/adapter-engine-sharp)
