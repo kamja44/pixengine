@@ -1,6 +1,6 @@
 {
   "name": "@pixengine/adapter-storage-local",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Local filesystem storage adapter for PixEngine",
   "keywords": [
     "pixengine",
