@@ -1,20 +1,20 @@
 # @pixengine/adapter-storage-local
 
-**English** | [한국어](README.ko.md)
+[English](README.md) | **한국어**
 
-Local filesystem storage adapter for PixEngine.
+PixEngine을 위한 로컬 파일시스템 스토리지 어댑터입니다.
 
-## Installation
+## 설치
 
 ```bash
 npm install @pixengine/adapter-storage-local
-# or
+# 또는
 pnpm add @pixengine/adapter-storage-local
-# or
+# 또는
 yarn add @pixengine/adapter-storage-local
 ```
 
-## Usage
+## 사용법
 
 ```typescript
 import { optimize } from '@pixengine/core';
@@ -34,7 +34,7 @@ const manifest = await optimize({
     ],
   }),
   engine: new SharpEngine(),
-  storage: new LocalStorage({ // ✨ Save to local disk
+  storage: new LocalStorage({ // ✨ 로컬 디스크에 저장
     baseDir: './public/uploads',
     baseUrl: 'https://example.com/uploads',
   }),
@@ -44,20 +44,20 @@ console.log(manifest.variants[0].url);
 // 'https://example.com/uploads/variants/photo_400w.webp'
 ```
 
-## Features
+## 주요 기능
 
-- 💾 **Local Filesystem**: Save images directly to disk
-- 📁 **Automatic Directory Creation**: Creates nested directories as needed
-- 🔗 **URL Generation**: Generates public URLs for stored images
-- ⚡ **Simple & Fast**: No external dependencies or services required
+- 💾 **로컬 파일시스템**: 디스크에 직접 이미지 저장
+- 📁 **자동 디렉토리 생성**: 필요에 따라 중첩 디렉토리 생성
+- 🔗 **URL 생성**: 저장된 이미지의 공개 URL 생성
+- ⚡ **간단하고 빠름**: 외부 의존성이나 서비스 불필요
 
 ## API
 
 ### `LocalStorage`
 
-Implements the `StorageAdapter` interface from `@pixengine/core`.
+`@pixengine/core`의 `StorageAdapter` 인터페이스를 구현합니다.
 
-#### Constructor
+#### 생성자
 
 ```typescript
 new LocalStorage(config: {
@@ -66,20 +66,20 @@ new LocalStorage(config: {
 })
 ```
 
-**Parameters:**
+**매개변수:**
 
-- `baseDir: string` - Root directory for file storage
-  - Example: `'./public/uploads'`
-  - Example: `'/var/www/static/images'`
-- `baseUrl: string` - Base URL for accessing stored files
-  - Example: `'https://example.com/uploads'`
-  - Example: `'http://localhost:3000/static/images'`
+- `baseDir: string` - 파일 저장을 위한 루트 디렉토리
+  - 예: `'./public/uploads'`
+  - 예: `'/var/www/static/images'`
+- `baseUrl: string` - 저장된 파일 접근을 위한 기본 URL
+  - 예: `'https://example.com/uploads'`
+  - 예: `'http://localhost:3000/static/images'`
 
-#### Methods
+#### 메서드
 
 ##### `put(args)`
 
-Save an image to the local filesystem.
+로컬 파일시스템에 이미지를 저장합니다.
 
 ```typescript
 const result = await storage.put({
@@ -97,31 +97,31 @@ console.log(result);
 // { url: 'https://example.com/uploads/variants/photo_800w.webp' }
 ```
 
-**Parameters:**
+**매개변수:**
 
-- `key: string` - File path relative to `baseDir`
-- `bytes: Uint8Array` - Image data
-- `contentType: string` - MIME type
-- `meta` - Image metadata (for future use)
+- `key: string` - `baseDir` 기준 상대 파일 경로
+- `bytes: Uint8Array` - 이미지 데이터
+- `contentType: string` - MIME 타입
+- `meta` - 이미지 메타데이터 (향후 사용)
 
-**Returns:** `Promise<{ url: string }>`
+**반환값:** `Promise<{ url: string }>`
 
-## File Organization
+## 파일 구조
 
-LocalStorage organizes files automatically:
+LocalStorage는 파일을 자동으로 구성합니다:
 
 ```
 baseDir/
 ├── original/
-│   └── photo.jpg          # Original images
+│   └── photo.jpg          # 원본 이미지
 └── variants/
-    ├── photo_400w.webp    # Generated variants
+    ├── photo_400w.webp    # 생성된 변형들
     └── photo_800w.webp
 ```
 
-## Examples
+## 예제
 
-### Express.js Integration
+### Express.js 통합
 
 ```typescript
 import express from 'express';
@@ -156,13 +156,13 @@ app.post('/upload', upload.single('image'), async (req, res) => {
   res.json(manifest);
 });
 
-// Serve static files
+// 정적 파일 제공
 app.use('/uploads', express.static('./public/uploads'));
 
 app.listen(3000);
 ```
 
-### Next.js Integration
+### Next.js 통합
 
 ```typescript
 // app/api/upload/route.ts
@@ -198,62 +198,53 @@ export async function POST(request: Request) {
 }
 ```
 
-Then configure `next.config.js` to serve static files:
+## 프로덕션 고려사항
 
-```javascript
-// next.config.js
-module.exports = {
-  // ... other config
-};
-```
+### 보안
 
-## Production Considerations
+- **파일 경로 검증**: `baseDir`이 적절히 샌드박스화되었는지 확인
+- **파일 크기 제한**: 업로드 크기 제한 사용
+- **파일명 정제**: 특수 문자 제거
 
-### Security
+### 성능
 
-- **Validate file paths**: Ensure `baseDir` is properly sandboxed
-- **Limit file sizes**: Use upload size limits
-- **Sanitize filenames**: Remove special characters
+- **CDN 사용**: 더 나은 성능을 위해 CDN을 통해 파일 제공
+- **캐싱 설정**: 적절한 캐시 헤더 구성
+- **객체 스토리지 고려**: 대규모 애플리케이션의 경우 S3 호환 스토리지 고려
 
-### Performance
+### 파일 시스템
 
-- **Use CDN**: Serve files through a CDN for better performance
-- **Set up caching**: Configure proper cache headers
-- **Consider object storage**: For high-scale applications, consider S3-compatible storage
+- **디스크 공간**: 사용 가능한 디스크 공간 모니터링
+- **백업**: 스토리지 디렉토리의 정기적인 백업
+- **권한**: 적절한 파일/디렉토리 권한 확인
 
-### File System
+## 사용 시기
 
-- **Disk space**: Monitor available disk space
-- **Backup**: Regular backups of the storage directory
-- **Permissions**: Ensure proper file/directory permissions
+LocalStorage가 이상적인 경우:
 
-## When to Use
+- ✅ 개발 및 테스트
+- ✅ 소규모~중규모 애플리케이션
+- ✅ 단일 서버 배포
+- ✅ 예측 가능한 스토리지 요구사항을 가진 애플리케이션
 
-LocalStorage is ideal for:
+클라우드 스토리지(S3 등)를 고려해야 하는 경우:
 
-- ✅ Development and testing
-- ✅ Small to medium applications
-- ✅ Single-server deployments
-- ✅ Applications with predictable storage needs
+- ❌ 대규모 애플리케이션
+- ❌ 다중 서버 배포
+- ❌ CDN 통합이 필요한 애플리케이션
+- ❌ 분산 시스템
 
-Consider cloud storage (S3, etc.) for:
-
-- ❌ High-scale applications
-- ❌ Multi-server deployments
-- ❌ Applications requiring CDN integration
-- ❌ Distributed systems
-
-## Requirements
+## 요구사항
 
 - Node.js >= 18.0.0
-- Write permissions for `baseDir`
+- `baseDir`에 대한 쓰기 권한
 
-## License
+## 라이선스
 
 MIT © PixEngine Team
 
-## Links
+## 링크
 
 - [PixEngine Core](https://www.npmjs.com/package/@pixengine/core)
-- [GitHub Repository](https://github.com/pixengine/pixengine)
-- [Issue Tracker](https://github.com/pixengine/pixengine/issues)
+- [GitHub 저장소](https://github.com/pixengine/pixengine)
+- [이슈 트래커](https://github.com/pixengine/pixengine/issues)
