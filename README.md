@@ -24,10 +24,14 @@
 pixengine/
 ├─ packages/
 │  ├─ core/                       # Brain: Policy evaluation & orchestration
-│  ├─ adapter-storage-local/      # Local storage implementation
-│  ├─ adapter-storage-s3/         # AWS S3 storage implementation
 │  ├─ adapter-engine-sharp/       # Sharp-based transformation engine
-│  └─ middleware-*                # Express & Next.js integrations
+│  ├─ adapter-storage-local/      # Local filesystem storage
+│  ├─ adapter-storage-s3/         # AWS S3 storage
+│  ├─ adapter-storage-r2/         # Cloudflare R2 storage
+│  ├─ adapter-storage-gcs/        # Google Cloud Storage
+│  ├─ adapter-storage-azure/      # Azure Blob Storage
+│  ├─ middleware-express/         # Express.js middleware
+│  └─ middleware-nextjs/          # Next.js App Router handler
 └─ examples/                      # Reference implementations
 ```
 
@@ -46,10 +50,12 @@ pixengine/
 PixEngine is currently in **Active Development (Alpha)**.
 
 - [x] Monorepo structure & Core orchestration
-- [x] Sharp Engine & Local Storage Adapters
+- [x] Sharp Engine Adapter
+- [x] Storage Adapters (Local, S3, R2, GCS, Azure)
+- [x] Express.js & Next.js Middleware
 - [ ] Policy DSL Specification
-- [ ] AWS S3 & Cloud Middleware
 - [ ] Smart Variants & Metadata Extraction
+- [ ] CDN Integration & Cache Management
 
 ---
 

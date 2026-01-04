@@ -87,9 +87,14 @@ const ProductImagePolicy = {
 The repository is structured as a monorepo to ensure clean boundaries:
 
 -   **`@pixengine/core`**: The brain. Handles policy evaluation and orchestrates the adapters.
--   **`@pixengine/adapter-engine-*`**: Implementations for image processing (e.g., Sharp).
--   **`@pixengine/adapter-storage-*`**: Where the results live (Local, AWS S3, etc.).
--   **`@pixengine/middleware-*`**: Easy integration layers for your favorite frameworks.
+-   **`@pixengine/adapter-engine-sharp`**: Sharp-based image processing engine.
+-   **`@pixengine/adapter-storage-local`**: Local filesystem storage.
+-   **`@pixengine/adapter-storage-s3`**: AWS S3 storage.
+-   **`@pixengine/adapter-storage-r2`**: Cloudflare R2 storage.
+-   **`@pixengine/adapter-storage-gcs`**: Google Cloud Storage.
+-   **`@pixengine/adapter-storage-azure`**: Azure Blob Storage.
+-   **`@pixengine/middleware-express`**: Express.js middleware integration.
+-   **`@pixengine/middleware-nextjs`**: Next.js App Router handler integration.
 
 ---
 
@@ -101,15 +106,17 @@ The repository is structured as a monorepo to ensure clean boundaries:
 - [x] Local Storage Adapter
 - [x] TDD-based Development & E2E Tests
 
-### Phase 2: Ecosystem
-- [ ] AWS S3 Storage Adapter
-- [ ] Express.js / Next.js Middleware
+### Phase 2: Ecosystem ✅ Completed
+- [x] Cloud Storage Adapters (AWS S3, Cloudflare R2, Google Cloud Storage, Azure Blob Storage)
+- [x] Express.js Middleware
+- [x] Next.js App Router Handler
 - [ ] Metadata Extraction (EXIF, Color Palette)
 
 ### Phase 3: Advanced Optimization
 - [ ] Smart Cropping (Face Detection)
 - [ ] Image "Lighthouse" score prediction
 - [ ] On-demand (JIT) delivery adapter
+- [ ] CDN Integration & Cache Management
 
 ---
 
