@@ -87,9 +87,14 @@ const ProductImagePolicy = {
 깔끔한 경계 처리를 위해 모노레포 구조로 설계되었습니다:
 
 -   **`@pixengine/core`**: 두뇌 역할. 정책을 평가하고 어댑터들을 조율합니다.
--   **`@pixengine/adapter-engine-*`**: 이미지 처리 구현체 (예: Sharp).
--   **`@pixengine/adapter-storage-*`**: 결과물이 저장되는 곳 (Local, AWS S3 등).
--   **`@pixengine/middleware-*`**: 선호하는 프레임워크를 위한 간편한 통합 레이어.
+-   **`@pixengine/adapter-engine-sharp`**: Sharp 기반 이미지 처리 엔진.
+-   **`@pixengine/adapter-storage-local`**: 로컬 파일시스템 저장소.
+-   **`@pixengine/adapter-storage-s3`**: AWS S3 저장소.
+-   **`@pixengine/adapter-storage-r2`**: Cloudflare R2 저장소.
+-   **`@pixengine/adapter-storage-gcs`**: Google Cloud Storage.
+-   **`@pixengine/adapter-storage-azure`**: Azure Blob Storage.
+-   **`@pixengine/middleware-express`**: Express.js 미들웨어 통합.
+-   **`@pixengine/middleware-nextjs`**: Next.js App Router 핸들러 통합.
 
 ---
 
@@ -101,15 +106,17 @@ const ProductImagePolicy = {
 - [x] 로컬 저장소 어댑터
 - [x] TDD 기반 개발 및 E2E 테스트
 
-### 2단계: 생태계 확장
-- [ ] AWS S3 저장소 어댑터
-- [ ] Express.js / Next.js 미들웨어
+### 2단계: 생태계 확장 ✅ 완료
+- [x] 클라우드 저장소 어댑터 (AWS S3, Cloudflare R2, Google Cloud Storage, Azure Blob Storage)
+- [x] Express.js 미들웨어
+- [x] Next.js App Router 핸들러
 - [ ] 메타데이터 추출 기능 (EXIF, 컬러 팔레트)
 
 ### 3단계: 고급 최적화
 - [ ] 스마트 크로핑 (얼굴 인식 등)
 - [ ] 이미지 "Lighthouse" 점수 예측
 - [ ] 온디맨드(JIT) 실시간 변환 어댑터
+- [ ] CDN 통합 및 캐시 관리
 
 ---
 
