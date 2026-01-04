@@ -1,1 +1,47 @@
-{"name": "@pixengine/middleware-nextjs", "version": "0.1.0", "private": true}
+{
+  "name": "@pixengine/middleware-nextjs",
+  "version": "0.1.0",
+  "description": "Next.js App Router handler for PixEngine image optimization",
+  "keywords": [
+    "pixengine",
+    "nextjs",
+    "app-router",
+    "route-handler",
+    "image-optimization"
+  ],
+  "author": "PixEngine Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pixengine/pixengine.git",
+    "directory": "packages/middleware-nextjs"
+  },
+  "bugs": {
+    "url": "https://github.com/pixengine/pixengine/issues"
+  },
+  "homepage": "https://github.com/pixengine/pixengine#readme",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rimraf dist",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "prepublishOnly": "pnpm build && pnpm test:run"
+  },
+  "peerDependencies": {
+    "@pixengine/core": "^0.1.0",
+    "next": "^14.0.0 || ^15.0.0"
+  },
+  "devDependencies": {
+    "@pixengine/core": "workspace:*",
+    "@pixengine/adapter-engine-sharp": "workspace:*",
+    "@pixengine/adapter-storage-local": "workspace:*",
+    "next": "^15.1.4"
+  }
+}
