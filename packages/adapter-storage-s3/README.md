@@ -51,15 +51,6 @@ console.log(manifest.variants[0].url);
 // https://my-images.s3.amazonaws.com/variants/photo_400w.webp
 ```
 
-## Features
-
-- ✅ **AWS S3 Integration**: Upload images directly to S3 buckets
-- 🔐 **Flexible Authentication**: Support for access keys or IAM roles
-- 🌐 **CDN Support**: Configure custom baseUrl for CloudFront or other CDNs
-- 🚀 **AWS SDK v3**: Uses the latest AWS SDK with modular architecture
-- 📦 **Type-Safe**: Full TypeScript support
-- ⚡ **Async Upload**: Non-blocking file uploads to S3
-
 ## API
 
 ### `new S3Storage(config)`
@@ -100,206 +91,9 @@ async put(args: {
 
 Uploads a file to S3 and returns the public URL.
 
-## Usage Examples
-
-### Basic Usage with Access Keys
-
-```typescript
-import { S3Storage } from '@pixengine/adapter-storage-s3';
-
-const storage = new S3Storage({
-  bucket: 'my-images',
-  region: 'us-east-1',
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  baseUrl: 'https://my-images.s3.amazonaws.com',
-});
-```
-
-### Using IAM Roles (EC2, Lambda, ECS)
-
-When running on AWS infrastructure, you can omit credentials and use IAM roles:
-
-```typescript
-import { S3Storage } from '@pixengine/adapter-storage-s3';
-
-const storage = new S3Storage({
-  bucket: 'my-images',
-  region: 'us-east-1',
-  baseUrl: 'https://my-images.s3.amazonaws.com',
-});
-```
-
-### Using with CloudFront CDN
-
-```typescript
-import { S3Storage } from '@pixengine/adapter-storage-s3';
-
-const storage = new S3Storage({
-  bucket: 'my-images',
-  region: 'us-east-1',
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  baseUrl: 'https://d1234567890.cloudfront.net',
-});
-```
-
-### Using with Express Middleware
-
-```typescript
-import express from 'express';
-import multer from 'multer';
-import { pixEngineMiddleware } from '@pixengine/middleware-express';
-import { SharpEngine } from '@pixengine/adapter-engine-sharp';
-import { S3Storage } from '@pixengine/adapter-storage-s3';
-
-const app = express();
-const upload = multer({ storage: multer.memoryStorage() });
-
-app.post(
-  '/upload',
-  upload.single('image'),
-  pixEngineMiddleware({
-    engine: new SharpEngine(),
-    storage: new S3Storage({
-      bucket: 'my-images',
-      region: 'us-east-1',
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-      baseUrl: 'https://d1234567890.cloudfront.net',
-    }),
-  })
-);
-
-app.listen(3000);
-```
-
-### Using with Next.js
-
-```typescript
-// app/api/upload/route.ts
-import { pixEngineHandler } from '@pixengine/middleware-nextjs';
-import { SharpEngine } from '@pixengine/adapter-engine-sharp';
-import { S3Storage } from '@pixengine/adapter-storage-s3';
-
-export const POST = pixEngineHandler({
-  engine: new SharpEngine(),
-  storage: new S3Storage({
-    bucket: 'my-images',
-    region: 'us-east-1',
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    baseUrl: 'https://d1234567890.cloudfront.net',
-  }),
-});
-```
-
-### Environment Variables
-
-```typescript
-import { S3Storage } from '@pixengine/adapter-storage-s3';
-
-const storage = new S3Storage({
-  bucket: process.env.S3_BUCKET!,
-  region: process.env.AWS_REGION!,
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  baseUrl: process.env.S3_BASE_URL!,
-});
-```
-
-**.env file:**
-```bash
-S3_BUCKET=my-images
-AWS_REGION=us-east-1
-AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
-AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
-S3_BASE_URL=https://d1234567890.cloudfront.net
-```
-
-## AWS Setup
-
-### 1. Create S3 Bucket
-
-```bash
-aws s3 mb s3://my-images --region us-east-1
-```
-
-### 2. Configure Bucket Policy (Public Read)
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "PublicReadGetObject",
-      "Effect": "Allow",
-      "Principal": "*",
-      "Action": "s3:GetObject",
-      "Resource": "arn:aws:s3:::my-images/*"
-    }
-  ]
-}
-```
-
-### 3. Configure CORS (if needed)
-
-```json
-[
-  {
-    "AllowedHeaders": ["*"],
-    "AllowedMethods": ["GET", "HEAD"],
-    "AllowedOrigins": ["*"],
-    "ExposeHeaders": []
-  }
-]
-```
-
-### 4. Create IAM User (for access keys)
-
-Create an IAM user with the following policy:
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "s3:PutObject",
-        "s3:PutObjectAcl"
-      ],
-      "Resource": "arn:aws:s3:::my-images/*"
-    }
-  ]
-}
-```
-
-## CloudFront Setup
-
-### 1. Create CloudFront Distribution
-
-- **Origin Domain**: `my-images.s3.amazonaws.com`
-- **Origin Path**: (empty)
-- **Viewer Protocol Policy**: Redirect HTTP to HTTPS
-- **Allowed HTTP Methods**: GET, HEAD
-- **Cache Policy**: CachingOptimized
-
-### 2. Use CloudFront URL
-
-```typescript
-const storage = new S3Storage({
-  bucket: 'my-images',
-  region: 'us-east-1',
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  baseUrl: 'https://d1234567890.cloudfront.net', // CloudFront URL
-});
-```
-
 ## Best Practices
 
-### 1. Use Environment Variables
+### Use Environment Variables
 
 Never hardcode credentials in your code:
 
@@ -313,44 +107,7 @@ const storage = new S3Storage({
 });
 ```
 
-### 2. Use IAM Roles on AWS
-
-When running on AWS (EC2, Lambda, ECS), use IAM roles instead of access keys:
-
-```typescript
-const storage = new S3Storage({
-  bucket: process.env.S3_BUCKET!,
-  region: process.env.AWS_REGION!,
-  baseUrl: process.env.S3_BASE_URL!,
-  // No credentials - uses IAM role
-});
-```
-
-### 3. Use CloudFront for CDN
-
-Use CloudFront to serve images faster globally:
-
-```typescript
-const storage = new S3Storage({
-  bucket: 'my-images',
-  region: 'us-east-1',
-  baseUrl: 'https://d1234567890.cloudfront.net', // CloudFront URL
-});
-```
-
-### 4. Set Appropriate Bucket Permissions
-
-- Use bucket policies for public read access
-- Restrict write access to specific IAM users/roles
-- Enable versioning for important images
-- Configure lifecycle rules to archive old images
-
-### 5. Monitor Costs
-
-- Use CloudWatch to monitor S3 storage and bandwidth
-- Set up billing alerts
-- Consider using S3 Intelligent-Tiering for cost optimization
-- Use CloudFront to reduce S3 data transfer costs
+For AWS setup, bucket policies, IAM roles, and CloudFront configuration, please refer to the [AWS S3 Documentation](https://docs.aws.amazon.com/s3/)
 
 ## Error Handling
 
@@ -373,18 +130,6 @@ try {
 }
 ```
 
-## Comparison with Local Storage
-
-| Feature | S3 Storage | Local Storage |
-|---------|-----------|--------------|
-| Scalability | ✅ Unlimited | ❌ Limited by disk |
-| CDN Integration | ✅ CloudFront | ❌ Requires setup |
-| Durability | ✅ 99.999999999% | ❌ Single point of failure |
-| Cost | 💰 Pay per use | ✅ Free (hosting cost) |
-| Setup | ⚙️ AWS account required | ✅ Simple |
-| Speed (same region) | ⚡ Fast | ⚡ Very fast |
-| Speed (global) | ⚡ Fast with CDN | ❌ Slower |
-
 ## Requirements
 
 - **Node.js**: >= 18.0.0
@@ -395,15 +140,3 @@ try {
 ## License
 
 MIT © PixEngine Team
-
-## Links
-
-- [PixEngine Core](https://www.npmjs.com/package/@pixengine/core)
-- [Sharp Engine Adapter](https://www.npmjs.com/package/@pixengine/adapter-engine-sharp)
-- [Local Storage Adapter](https://www.npmjs.com/package/@pixengine/adapter-storage-local)
-- [Express Middleware](https://www.npmjs.com/package/@pixengine/middleware-express)
-- [Next.js Middleware](https://www.npmjs.com/package/@pixengine/middleware-nextjs)
-- [AWS S3 Documentation](https://docs.aws.amazon.com/s3/)
-- [AWS SDK for JavaScript v3](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/)
-- [GitHub Repository](https://github.com/pixengine/pixengine)
-- [Issue Tracker](https://github.com/pixengine/pixengine/issues)
