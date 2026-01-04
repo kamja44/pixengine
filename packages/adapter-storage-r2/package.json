@@ -1,0 +1,46 @@
+{
+  "name": "@pixengine/adapter-storage-r2",
+  "version": "0.1.0",
+  "description": "Cloudflare R2 storage adapter for PixEngine",
+  "keywords": [
+    "pixengine",
+    "storage",
+    "adapter",
+    "r2",
+    "cloudflare"
+  ],
+  "author": "PixEngine Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pixengine/pixengine.git",
+    "directory": "packages/adapter-storage-r2"
+  },
+  "bugs": {
+    "url": "https://github.com/pixengine/pixengine/issues"
+  },
+  "homepage": "https://github.com/pixengine/pixengine#readme",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rimraf dist",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "prepublishOnly": "pnpm build && pnpm test:run"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.709.0"
+  },
+  "peerDependencies": {
+    "@pixengine/core": "^0.1.0"
+  },
+  "devDependencies": {
+    "@pixengine/core": "workspace:*"
+  }
+}

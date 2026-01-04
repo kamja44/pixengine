@@ -65,6 +65,16 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/adapter-storage-r2:
+    dependencies:
+      '@aws-sdk/client-s3':
+        specifier: ^3.709.0
+        version: 3.962.0
+    devDependencies:
+      '@pixengine/core':
+        specifier: workspace:*
+        version: link:../core
+
   packages/adapter-storage-s3:
     dependencies:
       '@aws-sdk/client-s3':
