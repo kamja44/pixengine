@@ -1,0 +1,25 @@
+{
+  "name": "pixengine-benchmarks",
+  "version": "1.0.0",
+  "description": "Comprehensive benchmark suite for PixEngine",
+  "type": "module",
+  "scripts": {
+    "generate": "node generate-test-images.mjs",
+    "bench": "node benchmark.mjs",
+    "analyze": "node analyze-results.mjs",
+    "all": "npm run generate && npm run bench && npm run analyze"
+  },
+  "dependencies": {
+    "@pixengine/core": "^0.1.0",
+    "@pixengine/adapter-engine-sharp": "^0.1.0",
+    "@pixengine/adapter-storage-local": "^0.1.0"
+  },
+  "keywords": [
+    "pixengine",
+    "benchmark",
+    "image-optimization",
+    "performance"
+  ],
+  "author": "PixEngine Team",
+  "license": "MIT"
+}

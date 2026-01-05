@@ -15,6 +15,7 @@
 - [Key Features](#-key-features)
 - [Policy-First Approach](#-policy-first-approach)
 - [Architecture](#-architecture)
+- [Benchmarks](#-benchmarks)
 - [Roadmap](#-roadmap)
 - [Getting Started](#-getting-started)
 
@@ -95,6 +96,20 @@ The repository is structured as a monorepo to ensure clean boundaries:
 -   **`@pixengine/adapter-storage-azure`**: Azure Blob Storage.
 -   **`@pixengine/middleware-express`**: Express.js middleware integration.
 -   **`@pixengine/middleware-nextjs`**: Next.js App Router handler integration.
+
+---
+
+## 📊 Benchmarks
+
+PixEngine achieves **79.4% average file size reduction** across comprehensive testing.
+
+### Quick Results
+- **WebP**: 84.5% average reduction (best all-around)
+- **AVIF**: 83.0% average reduction (excellent for gradients)
+- **Thumbnails (200px)**: 96.1% reduction
+- **Quality Sweet Spot**: 70-85 for optimal balance
+
+**For detailed benchmarks, methodology, and format comparisons**: See [**Benchmarks Documentation**](docs/BENCHMARKS.md)
 
 ---
 
