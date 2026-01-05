@@ -15,6 +15,7 @@
 - [주요 특징](#-주요-특징)
 - [정책 중심 접근 방식](#-정책-중심-접근-방식)
 - [아키텍처](#-아키텍처)
+- [벤치마크](#-벤치마크)
 - [로드맵](#-로드맵)
 - [시작하기](#-시작하기)
 
@@ -95,6 +96,20 @@ const ProductImagePolicy = {
 -   **`@pixengine/adapter-storage-azure`**: Azure Blob Storage.
 -   **`@pixengine/middleware-express`**: Express.js 미들웨어 통합.
 -   **`@pixengine/middleware-nextjs`**: Next.js App Router 핸들러 통합.
+
+---
+
+## 📊 벤치마크
+
+PixEngine은 종합 테스트에서 **평균 79.4% 파일 크기 감소**를 달성했습니다.
+
+### 주요 결과
+- **WebP**: 평균 84.5% 감소 (최고의 범용 포맷)
+- **AVIF**: 평균 83.0% 감소 (그라데이션에 탁월)
+- **썸네일 (200px)**: 96.1% 감소
+- **품질 최적 구간**: 70-85 (최적 균형)
+
+**상세한 벤치마크, 방법론, 포맷 비교**: [**벤치마크 문서**](docs/BENCHMARKS_KR.md) 참조
 
 ---
 
