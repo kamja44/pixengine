@@ -18,9 +18,7 @@ export class R2Storage implements StorageAdapter {
     this.validateConfig(config);
 
     this.bucket = config.bucket;
-    this.baseUrl = config.baseUrl.endsWith("/")
-      ? config.baseUrl.slice(0, -1)
-      : config.baseUrl;
+    this.baseUrl = config.baseUrl.endsWith("/") ? config.baseUrl.slice(0, -1) : config.baseUrl;
 
     // R2 uses S3-compatible API with custom endpoint
     const endpoint = `https://${config.accountId}.r2.cloudflarestorage.com`;

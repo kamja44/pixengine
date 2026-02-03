@@ -1,9 +1,4 @@
-import {
-  optimize,
-  type TransformEngine,
-  type StorageAdapter,
-  type Policy,
-} from "@pixengine/core";
+import { optimize, type TransformEngine, type StorageAdapter, type Policy } from "@pixengine/core";
 
 export interface PixEngineHandlerConfig {
   engine: TransformEngine;
@@ -11,7 +6,7 @@ export interface PixEngineHandlerConfig {
   policy?: Policy;
 }
 
-export const defaultPolicy: Policy = (ctx) => ({
+export const defaultPolicy: Policy = (_ctx) => ({
   variants: [
     { width: 400, format: "webp", quality: 80 },
     { width: 800, format: "webp", quality: 85 },
@@ -36,7 +31,6 @@ export function pixEngineHandler(
 
   return async (request: Request): Promise<Response> => {
     try {
-      // @ts-ignore - formData() is supported in Next.js runtime
       const formData = await request.formData();
       const file = formData.get("image");
 

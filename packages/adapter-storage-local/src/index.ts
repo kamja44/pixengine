@@ -1,4 +1,4 @@
-import { StorageAdapter } from "@pixengine/core";
+import type { StorageAdapter } from "@pixengine/core";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 

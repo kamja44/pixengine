@@ -25,9 +25,7 @@ export class AzureStorage implements StorageAdapter {
 
     this.containerName = config.containerName;
     this.baseUrl = config.baseUrl.replace(/\/$/, "");
-    this.blobServiceClient = BlobServiceClient.fromConnectionString(
-      config.connectionString,
-    );
+    this.blobServiceClient = BlobServiceClient.fromConnectionString(config.connectionString);
   }
 
   async put(args: {
@@ -36,9 +34,7 @@ export class AzureStorage implements StorageAdapter {
     contentType: string;
     meta: { width: number; height: number; format: string };
   }): Promise<{ url: string }> {
-    const containerClient = this.blobServiceClient.getContainerClient(
-      this.containerName,
-    );
+    const containerClient = this.blobServiceClient.getContainerClient(this.containerName);
     const blockBlobClient = containerClient.getBlockBlobClient(args.key);
 
     await blockBlobClient.upload(args.bytes, args.bytes.length, {
