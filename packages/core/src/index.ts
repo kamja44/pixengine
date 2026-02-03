@@ -28,9 +28,7 @@ export interface StorageAdapter {
 }
 
 export interface TransformEngine {
-  probe(
-    input: PixEngineInput,
-  ): Promise<{ width: number; height: number; format: string }>;
+  probe(input: PixEngineInput): Promise<{ width: number; height: number; format: string }>;
 
   transform(args: {
     input: PixEngineInput;

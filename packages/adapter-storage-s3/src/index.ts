@@ -18,9 +18,7 @@ export class S3Storage implements StorageAdapter {
     this.validateConfig(config);
 
     this.bucket = config.bucket;
-    this.baseUrl = config.baseUrl.endsWith("/")
-      ? config.baseUrl.slice(0, -1)
-      : config.baseUrl;
+    this.baseUrl = config.baseUrl.endsWith("/") ? config.baseUrl.slice(0, -1) : config.baseUrl;
 
     this.client = new S3Client({
       region: config.region,

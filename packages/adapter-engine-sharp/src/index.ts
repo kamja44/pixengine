@@ -1,10 +1,8 @@
-import { PixEngineInput, TransformEngine } from "@pixengine/core";
+import type { PixEngineInput, TransformEngine } from "@pixengine/core";
 import sharp from "sharp";
 
 export class SharpEngine implements TransformEngine {
-  async probe(
-    input: PixEngineInput,
-  ): Promise<{ width: number; height: number; format: string }> {
+  async probe(input: PixEngineInput): Promise<{ width: number; height: number; format: string }> {
     const image = sharp(input.bytes);
     const metadata = await image.metadata();
 

@@ -286,6 +286,110 @@ const storage = new LocalStorage({
 
 ---
 
+## 🧪 Compression Quality Tests
+
+We conducted comprehensive tests with 20 different image types to validate real-world compression quality. The tests intentionally include the **hardest-to-compress elements**: dense text, UI components, smooth gradients, and fine-grained details.
+
+### Test Methodology
+
+1. **Image Generation**: Created 20 test images covering various scenarios:
+   - Text-heavy images (5 images)
+   - UI/Icons (5 images)
+   - Gradients (5 images)
+   - Detail/Texture images (5 images)
+
+2. **Format Testing**: Each image tested in both JPG and PNG formats
+
+3. **Output Formats**: Converted to WebP and AVIF at quality 80
+
+4. **Real Package Testing**: Used published npm packages (`@pixengine/core`, `@pixengine/adapter-engine-sharp`, `@pixengine/adapter-storage-local`)
+
+### Key Results
+
+#### Average Compression Rates
+- **JPG → WebP**: 86.3% reduction
+- **JPG → AVIF**: 87.2% reduction
+- **PNG → WebP**: 68.0% reduction
+- **PNG → AVIF**: 76.6% reduction
+
+#### Best Performance by Image Type
+
+| Image Type | Best Format | Avg Compression | Use Case |
+|------------|-------------|-----------------|----------|
+| **Text-Heavy** | WebP | 68-80% | Documentation, articles, text overlays |
+| **UI/Icons** | WebP | 76-82% | Buttons, icons, interface elements |
+| **Gradients** | AVIF | 89-97% | Backgrounds, hero sections, sky |
+| **Detail/Texture** | AVIF | 83-98% | Photos, nature, complex patterns |
+| **Mixed Content** | AVIF | 85-93% | Landing pages, cards with images+text |
+
+### Format Recommendations
+
+#### When to use WebP:
+- ✅ Text-heavy images with sharp edges
+- ✅ UI components and icons
+- ✅ Images requiring pixel-perfect text
+- ✅ Scenarios needing broader browser support
+
+**Why:** WebP excels at preserving text clarity and sharp edges with minimal artifacts.
+
+#### When to use AVIF:
+- ✅ Photographs and natural images
+- ✅ Smooth gradients and backgrounds
+- ✅ Images without critical text
+- ✅ Maximum compression priority
+
+**Why:** AVIF provides superior gradient handling and better compression for photographic content.
+
+### Extreme Test Case
+
+The **extreme-test** image (combining TEXT + UI + GRADIENT + DETAIL):
+- Original JPG: 104.0 KB → WebP: 6.8 KB (**93.4% reduction**)
+- Original PNG: 50.5 KB → WebP: 6.8 KB (**86.6% reduction**)
+
+Even under this extreme scenario, the optimized images retain strong perceptual quality with **no visible blocking, ringing, or color banding**.
+
+### Policy-First Advantage in Action
+
+PixEngine's policy-first approach allows you to apply different strategies based on image characteristics:
+
+```typescript
+const smartPolicy = (ctx) => {
+  // Text/UI-heavy images: Use WebP
+  if (ctx.filename.includes('ui') || ctx.filename.includes('text')) {
+    return {
+      variants: [
+        { width: 800, format: "webp", quality: 85 }
+      ]
+    };
+  }
+
+  // Photos and gradients: Use AVIF
+  if (ctx.filename.includes('photo') || ctx.filename.includes('gradient')) {
+    return {
+      variants: [
+        { width: 800, format: "avif", quality: 80 }
+      ]
+    };
+  }
+
+  // Mixed content: Generate both
+  return {
+    variants: [
+      { width: 800, format: "webp", quality: 85 },
+      { width: 800, format: "avif", quality: 80 }
+    ]
+  };
+};
+```
+
+### Important Note
+
+While our tests show excellent results for lossy compression, **images with dense UI/text are preserved well, though lossless formats (PNG) are still recommended when pixel-perfect fidelity is absolutely required** (e.g., design mockups, technical diagrams).
+
+> 📊 **Full Test Results**: See detailed compression data in [docs/tests/compression-quality/results/TEST_RESULTS.md](docs/tests/compression-quality/results/TEST_RESULTS.md)
+
+---
+
 ## 🤝 Contributing
 
 We are in the early stages and would love your input on:

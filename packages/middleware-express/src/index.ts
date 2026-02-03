@@ -12,7 +12,7 @@ export interface MulterRequest extends Request {
   file?: Express.Multer.File;
 }
 
-export const defaultPolicy: Policy = (ctx) => ({
+export const defaultPolicy: Policy = (_ctx) => ({
   variants: [
     { width: 400, format: "webp", quality: 80 },
     { width: 800, format: "webp", quality: 85 },
@@ -29,14 +29,12 @@ function validateConfig(config: PixEngineMiddlewareConfig): void {
   }
 }
 
-export function pixEngineMiddleware(
-  config: PixEngineMiddlewareConfig,
-): RequestHandler {
+export function pixEngineMiddleware(config: PixEngineMiddlewareConfig): RequestHandler {
   validateConfig(config);
 
   const policy = config.policy || defaultPolicy;
 
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, res: Response, _next: NextFunction) => {
     try {
       const multerReq = req as MulterRequest;
 

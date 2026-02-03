@@ -1,6 +1,7 @@
 {
   "name": "pixengine-monorepo",
   "private": true,
+  "type": "module",
   "packageManager": "pnpm@10.0.0",
   "description": "A high-performance image optimization engine with policy-based orchestration.",
   "scripts": {
@@ -8,17 +9,22 @@
     "dev": "pnpm -r dev",
     "test": "pnpm -r test",
     "test:run": "pnpm -r test:run",
-    "lint": "pnpm -r lint",
+    "lint": "eslint 'packages/*/src/**/*.ts'",
+    "format": "prettier --write 'packages/*/src/**/*.ts'",
+    "format:check": "prettier --check 'packages/*/src/**/*.ts'",
     "typecheck": "pnpm -r typecheck",
     "clean": "pnpm -r clean"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
     "@types/node": "^25.0.3",
     "@vitest/ui": "^4.0.16",
-    "eslint": "^8.0.0",
+    "eslint": "^9.0.0",
+    "eslint-config-prettier": "^10.0.0",
     "prettier": "^3.0.0",
     "rimraf": "^6.1.2",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.0.0",
     "vitest": "^4.0.16"
   }
 }
