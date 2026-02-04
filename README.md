@@ -12,7 +12,7 @@
 ## 🔥 Why PixEngine?
 
 - **Policy-First**: Decisions are driven by testable policies, not opaque configurations.
-- **Explicit Orchestration**: You control *when* and *how* images are transformed and where they are stored.
+- **Explicit Orchestration**: You control _when_ and _how_ images are transformed and where they are stored.
 - **Pluggable Architecture**: Easily swap storage providers (S3, Local) and processing engines (Sharp).
 - **Zero-Vendor Lock-in**: Works with your existing infrastructure, no proprietary CDN required.
 
@@ -58,14 +58,18 @@ PixEngine is currently in **Active Development (Alpha)**.
 - [x] On-demand (JIT) Image Transformation Middleware
 - [x] HTML `<picture>` Markup Generation
 - [x] CI/CD (GitHub Actions)
-- [ ] Policy DSL Specification
-- [ ] CDN Integration & Cache Management
+- [x] Policy DSL Specification
+- [x] CDN Integration & Cache Management
+- [ ] **Secure URL Signing (HMAC)**
+- [ ] **Observability (OpenTelemetry)**
+- [ ] **React/Vue Components**
 
 ---
 
 ## 🤝 Community
 
 For detailed documentation, please refer to:
+
 - [English Documentation (Details)](README_EN.md)
 - [한국어 문서 (상세)](README_KR.md)
 
