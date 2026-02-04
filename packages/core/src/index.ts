@@ -49,6 +49,11 @@ export interface StorageAdapter {
   }): Promise<{ url: string }>;
 }
 
+export interface CacheAdapter {
+  get(key: string): Promise<Uint8Array | null>;
+  set(key: string, value: Uint8Array, ttl?: number): Promise<void>;
+}
+
 export interface TransformEngine {
   probe(input: PixEngineInput): Promise<ImageMetadata>;
 

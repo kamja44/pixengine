@@ -1,22 +1,47 @@
 import type { Request, Response, NextFunction, RequestHandler } from "express";
-import type { TransformEngine } from "@pixengine/core";
+import type { TransformEngine, CacheAdapter } from "@pixengine/core";
 import { createHash } from "crypto";
+import { LRUCache } from "lru-cache";
 
+// Define SourceResolver here to avoid circular dependency if imported from itself
 export type SourceResolver = (
   key: string,
 ) => Promise<{ bytes: Uint8Array; contentType: string } | null>;
 
+// Basic Memory Cache Implementation
+class MemoryCache implements CacheAdapter {
+  private cache: LRUCache<string, Uint8Array>;
+
+  constructor(ttl: number = 1000 * 60 * 5, max: number = 500) {
+    this.cache = new LRUCache({
+      max,
+      ttl,
+    });
+  }
+
+  async get(key: string): Promise<Uint8Array | null> {
+    return this.cache.get(key) || null;
+  }
+
+  async set(key: string, value: Uint8Array, ttl?: number): Promise<void> {
+    this.cache.set(key, value, { ttl });
+  }
+}
+
 export interface JitConfig {
   engine: TransformEngine;
   source: SourceResolver;
+  cache?: CacheAdapter; // Optional cache adapter
   maxWidth?: number;
   maxHeight?: number;
   allowedFormats?: Array<"webp" | "avif" | "jpeg" | "png">;
   defaultFormat?: "webp" | "avif" | "jpeg" | "png";
   defaultQuality?: number;
   cacheControl?: string;
+  cacheTtl?: number; // TTL for default memory cache (ms)
 }
 
+// Constants and Helpers come first
 const DEFAULT_MAX_WIDTH = 4096;
 const DEFAULT_MAX_HEIGHT = 4096;
 const DEFAULT_ALLOWED_FORMATS: Array<"webp" | "avif" | "jpeg" | "png"> = [
@@ -86,6 +111,16 @@ function parseParams(
   return params;
 }
 
+function generateCacheKey(key: string, params: TransformParams): string {
+  // Simple cache key: "key?w=100&h=100&fmt=webp&q=80"
+  const parts = [key];
+  if (params.width) parts.push(`w=${params.width}`);
+  if (params.height) parts.push(`h=${params.height}`);
+  if (params.format) parts.push(`fmt=${params.format}`);
+  if (params.quality) parts.push(`q=${params.quality}`);
+  return parts.join("?");
+}
+
 function generateETag(bytes: Uint8Array): string {
   const hash = createHash("md5").update(bytes).digest("hex").slice(0, 16);
   return `"${hash}"`;
@@ -96,6 +131,10 @@ export function jitMiddleware(config: JitConfig): RequestHandler {
 
   const cacheControl = config.cacheControl ?? DEFAULT_CACHE_CONTROL;
   const defaultFormat = config.defaultFormat;
+  const cacheTtl = config.cacheTtl ?? 1000 * 60 * 60; // Default 1 hour
+
+  // Use provided cache or default to MemoryCache
+  const cache = config.cache ?? new MemoryCache(cacheTtl);
 
   return async (req: Request, res: Response, _next: NextFunction) => {
     try {
@@ -113,21 +152,65 @@ export function jitMiddleware(config: JitConfig): RequestHandler {
         return;
       }
 
-      // 3. Resolve source image
+      // Pre-check: Resolve source logic comes later, but if we have a cache hit for transform,
+      // we might save the source lookup?
+      // Actually source lookup is needed if we want to support "check if source exists" first,
+      // but for max performance we can check cache first.
+
+      const format = result.format ?? defaultFormat;
+
+      // Determine transformation params
+      const transformParams: TransformParams = {
+        width: result.width,
+        height: result.height,
+        format, // Could be undefined if not requested and no default
+        quality: result.quality,
+      };
+
+      // 3. Check Cache
+      const cacheKey = generateCacheKey(key, transformParams);
+      const cached = await cache.get(cacheKey);
+
+      if (cached) {
+        const etag = generateETag(cached);
+        if (req.headers["if-none-match"] === etag) {
+          res.status(304).end();
+          return;
+        }
+
+        // Guess content type from format or default to octet-stream
+        // Since we don't store separate metadata in this simple cache, we rely on the params
+        const contentType = transformParams.format
+          ? `image/${transformParams.format}`
+          : "application/octet-stream";
+
+        res.set("Content-Type", contentType);
+        res.set("Cache-Control", cacheControl);
+        res.set("X-PixEngine-Cache", "HIT");
+        res.set("ETag", etag);
+        res.send(Buffer.from(cached));
+        return;
+      }
+
+      // 4. Resolve source image (Cache Miss)
       const source = await config.source(key);
       if (!source) {
         res.status(404).json({ error: "Image not found" });
         return;
       }
 
-      // 4. Determine output format
-      const format = result.format ?? defaultFormat;
-
       // 5. Check if transformation is needed
-      const needsTransform = result.width || result.height || format;
+      // If format is undefined, we use source's format if likely, but engine.transform expects target format.
+      // If no target format specified, maybe we just resize?
+      // Let's stick to existing logic:
+      const effectiveFormat = result.format ?? defaultFormat;
+      const needsTransform = result.width || result.height || effectiveFormat;
 
       if (!needsTransform) {
-        // Serve original with cache headers
+        // Serve original
+        // Note: We are currently NOT caching originals in this middleware cache,
+        // assuming originals might be large and source storage is fast enough or handled elsewhere.
+        // But consistent behavior might be better. For now, let's keep original serving as-is.
         const etag = generateETag(source.bytes);
         if (req.headers["if-none-match"] === etag) {
           res.status(304).end();
@@ -135,6 +218,7 @@ export function jitMiddleware(config: JitConfig): RequestHandler {
         }
         res.set("Content-Type", source.contentType);
         res.set("Cache-Control", cacheControl);
+        res.set("X-PixEngine-Cache", "MISS");
         res.set("ETag", etag);
         res.send(Buffer.from(source.bytes));
         return;
@@ -151,11 +235,15 @@ export function jitMiddleware(config: JitConfig): RequestHandler {
         input,
         width: result.width,
         height: result.height,
-        format,
+        format: effectiveFormat,
         quality: result.quality,
       });
 
-      // 7. Respond with transformed image
+      // 7. Save to Cache
+      // Use config TTL or default
+      await cache.set(cacheKey, transformed.bytes, cacheTtl);
+
+      // 8. Respond with transformed image
       const contentType = `image/${transformed.format}`;
       const etag = generateETag(transformed.bytes);
 
@@ -166,6 +254,7 @@ export function jitMiddleware(config: JitConfig): RequestHandler {
 
       res.set("Content-Type", contentType);
       res.set("Cache-Control", cacheControl);
+      res.set("X-PixEngine-Cache", "MISS");
       res.set("ETag", etag);
       res.send(Buffer.from(transformed.bytes));
     } catch (error) {

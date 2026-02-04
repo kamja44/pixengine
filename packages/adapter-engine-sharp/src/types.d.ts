@@ -8,7 +8,7 @@ declare module "ssim.js" {
 
   export interface SSIMResult {
     mssim: number;
-    ssim_map?: any;
+    ssim_map?: unknown;
   }
 
   function ssim(image1: SSIMOptions, image2: SSIMOptions): SSIMResult;
