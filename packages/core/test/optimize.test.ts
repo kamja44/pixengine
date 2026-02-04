@@ -5,6 +5,7 @@ import type {
   TransformEngine,
   StorageAdapter,
   PixEngineInput,
+  PolicyContext,
 } from "../src/index.js";
 
 describe("optimize()", () => {
@@ -117,7 +118,64 @@ describe("optimize()", () => {
       height: 1080,
       format: "png",
       bytes: 10,
+      filename: "large.png",
+      contentType: "image/png",
+      metadata: {
+        width: 1920,
+        height: 1080,
+        format: "png",
+      },
     });
+  });
+
+  it("should pass metadata to policy for content-aware decisions", async () => {
+    // Given: Engine returns rich metadata
+    const mockEngine: TransformEngine = {
+      probe: vi.fn().mockResolvedValue({
+        width: 4000,
+        height: 3000,
+        format: "jpeg",
+        space: "srgb",
+        hasAlpha: false,
+        density: 300,
+      }),
+      transform: vi.fn().mockResolvedValue({
+        bytes: new Uint8Array([1]),
+        width: 800,
+        height: 600,
+        format: "webp",
+      }),
+    };
+
+    const mockStorage: StorageAdapter = {
+      put: vi.fn().mockResolvedValue({ url: "http://test.com/img" }),
+    };
+
+    // Policy that uses metadata for decisions
+    const smartPolicy: Policy = (ctx: PolicyContext) => {
+      if (ctx.metadata.hasAlpha) {
+        return { variants: [{ width: 800, format: "png" as const }] };
+      }
+      return { variants: [{ width: 800, format: "webp" as const, quality: 85 }] };
+    };
+
+    const input: PixEngineInput = {
+      filename: "photo.jpg",
+      bytes: new Uint8Array(1000),
+      contentType: "image/jpeg",
+    };
+
+    // When
+    const manifest = await optimize({
+      input,
+      policy: smartPolicy,
+      engine: mockEngine,
+      storage: mockStorage,
+    });
+
+    // Then: Should pick webp since hasAlpha is false
+    expect(manifest.variants).toHaveLength(1);
+    expect(manifest.variants[0].format).toBe("webp");
   });
 
   it("should generate multiple variants based on policy", async () => {
