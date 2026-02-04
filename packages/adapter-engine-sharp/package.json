@@ -37,7 +37,8 @@
     "prepublishOnly": "pnpm build && pnpm test:run"
   },
   "dependencies": {
-    "sharp": "^0.33.0"
+    "sharp": "^0.33.0",
+    "ssim.js": "^3.5.0"
   },
   "peerDependencies": {
     "@pixengine/core": "^0.1.0"

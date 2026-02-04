@@ -19,6 +19,11 @@ export type ImageMetadata = {
 
 export type CropStrategy = "center" | "top" | "right" | "bottom" | "left" | "entropy" | "attention";
 
+export interface QualityMetrics {
+  ssim?: number;
+  bpp: number;
+}
+
 export type Variant = {
   key: string;
   url: string;
@@ -27,6 +32,7 @@ export type Variant = {
   format: string;
   bytes: number;
   crop?: CropStrategy;
+  metrics?: QualityMetrics;
 };
 
 export type Manifest = {
@@ -58,6 +64,7 @@ export interface TransformEngine {
     width: number;
     height: number;
     format: string;
+    metrics?: QualityMetrics;
   }>;
 }
 
@@ -240,6 +247,7 @@ export async function optimize(args: {
       format: transformed.format,
       bytes: transformed.bytes.length,
       crop: variantSpec.crop,
+      metrics: transformed.metrics,
     });
   }
 

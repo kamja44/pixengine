@@ -1,5 +1,12 @@
-import type { CropStrategy, ImageMetadata, PixEngineInput, TransformEngine } from "@pixengine/core";
+import type {
+  CropStrategy,
+  ImageMetadata,
+  PixEngineInput,
+  TransformEngine,
+  QualityMetrics,
+} from "@pixengine/core";
 import sharp from "sharp";
+import ssim from "ssim.js";
 
 function parseExif(exifBuffer: Buffer | undefined): Record<string, unknown> | undefined {
   if (!exifBuffer || exifBuffer.length === 0) return undefined;
@@ -37,6 +44,7 @@ export class SharpEngine implements TransformEngine {
     format: string;
     width: number;
     height: number;
+    metrics?: QualityMetrics;
   }> {
     let pipeline = sharp(args.input.bytes);
 
@@ -94,12 +102,72 @@ export class SharpEngine implements TransformEngine {
 
     // Check result metadata
     const resultMetadata = await sharp(buffer).metadata();
+    const resultWidth = resultMetadata.width ?? 0;
+    const resultHeight = resultMetadata.height ?? 0;
+
+    // Calculate BPP (Bits Per Pixel)
+    const bits = buffer.length * 8;
+    const pixels = resultWidth * resultHeight;
+    const bpp = pixels > 0 ? parseFloat((bits / pixels).toFixed(3)) : 0;
+
+    // Calculate SSIM (Structural Similarity) using ssim.js
+    // We need to compare specific raw pixel data.
+    // Optimizing SSIM calculation:
+    // 1. Get raw buffer of original image RESIZED to target dimensions (reference)
+    // 2. Get raw buffer of transformed image (distorted)
+    // 3. Compare with ssim.js
+    let ssimScore: number | undefined;
+
+    try {
+      // 1. Prepare reference: Resize original to target dimensions, output raw
+      // Use 'fast' shrinkage for reference generation speed
+      const { data: refData, info: refInfo } = await sharp(args.input.bytes)
+        .resize({
+          width: resultWidth,
+          height: resultHeight,
+          fit: "fill", // Force exact match to result dimensions for pixel comparison
+        })
+        .raw() // Get raw pixel data
+        .toBuffer({ resolveWithObject: true });
+
+      // 2. Prepare distorted: Decode result buffer to raw
+      const { data: distData, info: distInfo } = await sharp(buffer)
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+
+      // 3. Compare using ssim.js
+      // Default to 1.0 if calculation fails or dimensions mismatch (though they shouldn't)
+      if (refInfo.width === distInfo.width && refInfo.height === distInfo.height) {
+        const result = ssim(
+          {
+            data: new Uint8Array(refData),
+            width: refInfo.width,
+            height: refInfo.height,
+            channels: refInfo.channels,
+          },
+          {
+            data: new Uint8Array(distData),
+            width: distInfo.width,
+            height: distInfo.height,
+            channels: distInfo.channels,
+          },
+        );
+        ssimScore = parseFloat(result.mssim.toFixed(3));
+      }
+    } catch (err) {
+      console.warn("Failed to calculate SSIM:", err);
+      // Fallback or ignore
+    }
 
     return {
       bytes: new Uint8Array(buffer),
-      width: resultMetadata.width ?? 0,
-      height: resultMetadata.height ?? 0,
+      width: resultWidth,
+      height: resultHeight,
       format: targetFormat,
+      metrics: {
+        bpp,
+        ssim: ssimScore,
+      },
     };
   }
 }
