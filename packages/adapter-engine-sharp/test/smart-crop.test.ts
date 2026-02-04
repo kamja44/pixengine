@@ -1,6 +1,6 @@
 import { SharpEngine } from "../src";
 import sharp from "sharp";
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 
 describe("SharpEngine Smart Cropping", () => {
   it("should use entropy strategy when crop is set to entropy", async () => {
