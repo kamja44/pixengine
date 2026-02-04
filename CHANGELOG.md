@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.0 (2026-02-04)
+
+### 🚀 Features
+
+- **Security**: URL Signing (HMAC) support for preventing unauthorized transformations.
+- **Monitoring**: OpenTelemetry tracing integration for performance monitoring.
+- **UI Components**: New `@pixengine/react` package with `<PixImage />` component.
+- **Documentation**: Comprehensive guides and API docs in `@pixengine/docs`.
+
+### 📦 Packages
+
+- Updated all packages to v0.2.0
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
