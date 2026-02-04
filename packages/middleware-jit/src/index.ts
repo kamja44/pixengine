@@ -1,14 +1,52 @@
 import type { Request, Response, NextFunction, RequestHandler } from "express";
 import type { TransformEngine, CacheAdapter } from "@pixengine/core";
+import { verifyUrl } from "@pixengine/core";
 import { createHash } from "crypto";
 import { LRUCache } from "lru-cache";
 
-// Define SourceResolver here to avoid circular dependency if imported from itself
+// 1. Types & Interfaces
 export type SourceResolver = (
   key: string,
 ) => Promise<{ bytes: Uint8Array; contentType: string } | null>;
 
-// Basic Memory Cache Implementation
+export interface JitSecurityConfig {
+  secret: string;
+}
+
+export interface JitConfig {
+  engine: TransformEngine;
+  source: SourceResolver;
+  cache?: CacheAdapter;
+  security?: JitSecurityConfig;
+  maxWidth?: number;
+  maxHeight?: number;
+  allowedFormats?: Array<"webp" | "avif" | "jpeg" | "png">;
+  defaultFormat?: "webp" | "avif" | "jpeg" | "png";
+  defaultQuality?: number;
+  cacheControl?: string;
+  cacheTtl?: number;
+}
+
+interface TransformParams {
+  width?: number;
+  height?: number;
+  format?: "webp" | "avif" | "jpeg" | "png";
+  quality: number;
+}
+
+// 2. Constants
+const DEFAULT_MAX_WIDTH = 4096;
+const DEFAULT_MAX_HEIGHT = 4096;
+const DEFAULT_ALLOWED_FORMATS: Array<"webp" | "avif" | "jpeg" | "png"> = [
+  "webp",
+  "avif",
+  "jpeg",
+  "png",
+];
+const DEFAULT_QUALITY = 80;
+const DEFAULT_CACHE_CONTROL = "public, max-age=31536000, immutable";
+
+// 3. Helper Classes
 class MemoryCache implements CacheAdapter {
   private cache: LRUCache<string, Uint8Array>;
 
@@ -28,38 +66,7 @@ class MemoryCache implements CacheAdapter {
   }
 }
 
-export interface JitConfig {
-  engine: TransformEngine;
-  source: SourceResolver;
-  cache?: CacheAdapter; // Optional cache adapter
-  maxWidth?: number;
-  maxHeight?: number;
-  allowedFormats?: Array<"webp" | "avif" | "jpeg" | "png">;
-  defaultFormat?: "webp" | "avif" | "jpeg" | "png";
-  defaultQuality?: number;
-  cacheControl?: string;
-  cacheTtl?: number; // TTL for default memory cache (ms)
-}
-
-// Constants and Helpers come first
-const DEFAULT_MAX_WIDTH = 4096;
-const DEFAULT_MAX_HEIGHT = 4096;
-const DEFAULT_ALLOWED_FORMATS: Array<"webp" | "avif" | "jpeg" | "png"> = [
-  "webp",
-  "avif",
-  "jpeg",
-  "png",
-];
-const DEFAULT_QUALITY = 80;
-const DEFAULT_CACHE_CONTROL = "public, max-age=31536000, immutable";
-
-interface TransformParams {
-  width?: number;
-  height?: number;
-  format?: "webp" | "avif" | "jpeg" | "png";
-  quality: number;
-}
-
+// 4. Helper Functions
 function validateConfig(config: JitConfig): void {
   if (!config.engine) {
     throw new Error("JitMiddleware: engine is required");
@@ -112,7 +119,6 @@ function parseParams(
 }
 
 function generateCacheKey(key: string, params: TransformParams): string {
-  // Simple cache key: "key?w=100&h=100&fmt=webp&q=80"
   const parts = [key];
   if (params.width) parts.push(`w=${params.width}`);
   if (params.height) parts.push(`h=${params.height}`);
@@ -126,6 +132,7 @@ function generateETag(bytes: Uint8Array): string {
   return `"${hash}"`;
 }
 
+// 5. Middleware Implementation
 export function jitMiddleware(config: JitConfig): RequestHandler {
   validateConfig(config);
 
@@ -133,13 +140,27 @@ export function jitMiddleware(config: JitConfig): RequestHandler {
   const defaultFormat = config.defaultFormat;
   const cacheTtl = config.cacheTtl ?? 1000 * 60 * 60; // Default 1 hour
 
-  // Use provided cache or default to MemoryCache
   const cache = config.cache ?? new MemoryCache(cacheTtl);
 
   return async (req: Request, res: Response, _next: NextFunction) => {
     try {
+      // 0. Security Verification
+      if (config.security?.secret) {
+        // req.originalUrl includes the base path (e.g., /img/photo.jpg?w=100)
+        // verifyUrl expects path + query
+        const fullPath = req.originalUrl || req.url;
+        const verified = verifyUrl(fullPath, config.security.secret);
+
+        if (!verified) {
+          res.status(403).json({ error: "Invalid signature" });
+          return;
+        }
+      }
+
       // 1. Extract image key from URL path
+      // Express routing: if mounted on /img, req.path is /photo.jpg
       const key = req.params[0] || req.params.key;
+
       if (!key) {
         res.status(400).json({ error: "No image key provided" });
         return;
@@ -152,18 +173,13 @@ export function jitMiddleware(config: JitConfig): RequestHandler {
         return;
       }
 
-      // Pre-check: Resolve source logic comes later, but if we have a cache hit for transform,
-      // we might save the source lookup?
-      // Actually source lookup is needed if we want to support "check if source exists" first,
-      // but for max performance we can check cache first.
-
       const format = result.format ?? defaultFormat;
 
       // Determine transformation params
       const transformParams: TransformParams = {
         width: result.width,
         height: result.height,
-        format, // Could be undefined if not requested and no default
+        format,
         quality: result.quality,
       };
 
@@ -178,8 +194,6 @@ export function jitMiddleware(config: JitConfig): RequestHandler {
           return;
         }
 
-        // Guess content type from format or default to octet-stream
-        // Since we don't store separate metadata in this simple cache, we rely on the params
         const contentType = transformParams.format
           ? `image/${transformParams.format}`
           : "application/octet-stream";
@@ -200,17 +214,10 @@ export function jitMiddleware(config: JitConfig): RequestHandler {
       }
 
       // 5. Check if transformation is needed
-      // If format is undefined, we use source's format if likely, but engine.transform expects target format.
-      // If no target format specified, maybe we just resize?
-      // Let's stick to existing logic:
       const effectiveFormat = result.format ?? defaultFormat;
       const needsTransform = result.width || result.height || effectiveFormat;
 
       if (!needsTransform) {
-        // Serve original
-        // Note: We are currently NOT caching originals in this middleware cache,
-        // assuming originals might be large and source storage is fast enough or handled elsewhere.
-        // But consistent behavior might be better. For now, let's keep original serving as-is.
         const etag = generateETag(source.bytes);
         if (req.headers["if-none-match"] === etag) {
           res.status(304).end();
@@ -240,7 +247,6 @@ export function jitMiddleware(config: JitConfig): RequestHandler {
       });
 
       // 7. Save to Cache
-      // Use config TTL or default
       await cache.set(cacheKey, transformed.bytes, cacheTtl);
 
       // 8. Respond with transformed image

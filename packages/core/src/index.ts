@@ -269,3 +269,6 @@ export async function optimize(args: {
 }
 
 export * from "./dsl.js";
+
+// Export security
+export * from "./security.js";
