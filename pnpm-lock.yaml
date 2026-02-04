@@ -144,6 +144,18 @@ importers:
         specifier: ^4.21.2
         version: 4.22.1
 
+  packages/middleware-jit:
+    devDependencies:
+      '@pixengine/core':
+        specifier: workspace:*
+        version: link:../core
+      '@types/express':
+        specifier: ^5.0.0
+        version: 5.0.6
+      express:
+        specifier: ^4.21.2
+        version: 4.22.1
+
   packages/middleware-nextjs:
     devDependencies:
       '@pixengine/adapter-engine-sharp':
