@@ -30,8 +30,9 @@ pixengine/
 │  ├─ adapter-storage-r2/         # Cloudflare R2 storage
 │  ├─ adapter-storage-gcs/        # Google Cloud Storage
 │  ├─ adapter-storage-azure/      # Azure Blob Storage
-│  ├─ middleware-express/         # Express.js middleware
-│  └─ middleware-nextjs/          # Next.js App Router handler
+│  ├─ middleware-express/         # Express.js upload middleware
+│  ├─ middleware-nextjs/          # Next.js App Router handler
+│  └─ middleware-jit/             # On-demand (JIT) image transformation
 └─ examples/                      # Reference implementations
 ```
 
@@ -53,8 +54,11 @@ PixEngine is currently in **Active Development (Alpha)**.
 - [x] Sharp Engine Adapter
 - [x] Storage Adapters (Local, S3, R2, GCS, Azure)
 - [x] Express.js & Next.js Middleware
+- [x] Rich Metadata Extraction & Policy Context
+- [x] On-demand (JIT) Image Transformation Middleware
+- [x] HTML `<picture>` Markup Generation
+- [x] CI/CD (GitHub Actions)
 - [ ] Policy DSL Specification
-- [ ] Smart Variants & Metadata Extraction
 - [ ] CDN Integration & Cache Management
 
 ---

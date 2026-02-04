@@ -102,20 +102,52 @@ None (initial release)
 
 Developed with TDD methodology following Kent Beck principles.
 
+## [0.2.0] - 2025-02-04
+
+### Added
+
+#### New Ecosystem Packages
+
+- **Cloud Storage Adapters**
+  - `@pixengine/adapter-storage-s3` (AWS S3)
+  - `@pixengine/adapter-storage-r2` (Cloudflare R2)
+  - `@pixengine/adapter-storage-gcs` (Google Cloud Storage)
+  - `@pixengine/adapter-storage-azure` (Azure Blob Storage)
+- **Framework Middleware**
+  - `@pixengine/middleware-express`: Seamless integration with Express.js applications
+  - `@pixengine/middleware-nextjs`: Next.js App Router API handler integration
+- **On-Demand Transformation**
+  - `@pixengine/middleware-jit`: "Just-In-Time" transformation middleware for on-the-fly image processing
+
+#### Core Enhancements
+
+- **Rich Metadata Extraction**: `ImageMetadata` interface used in PolicyContext now includes:
+  - Color space information
+  - Alpha channel presence
+  - Pixel density (DPI)
+  - EXIF data
+- **HTML Helper**: `generatePicture()` function to create responsive `<picture>` tags from manifests
+- **Expanded Policy Context**: Policy functions now receive filename and contentType
+
+#### Developer Experience
+
+- **CI/CD Pipelines**: Automated GitHub Actions for testing and publishing
+- Code quality tooling with ESLint and Prettier
+- Benchmarking suite for compression quality analysis
+
+### Changed
+
+- Updated `PolicyContext` signature to include `metadata` object
+
 ## [Unreleased]
 
-### Planned for v0.2.0
+### Planned
 
-- AWS S3 storage adapter
-- Express.js middleware
-- Next.js middleware
-- Advanced policy DSL
-- Metadata extraction (EXIF, color palette)
+- Smart cropping (Face Detection)
+- Image "Lighthouse" score prediction
+- CDN Integration & Cache Management
+- Worker pool for parallel processing (if needed)
 
-### Planned for v0.3.0
+### Roadmap
 
-- Smart cropping with AI
-- Image quality scoring
-- On-demand (JIT) transformation
-- Worker pool for parallel processing
-- Caching layer
+See [README.md](README.md#roadmap) for full roadmap.

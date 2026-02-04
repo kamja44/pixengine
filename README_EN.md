@@ -87,15 +87,16 @@ const ProductImagePolicy = {
 
 The repository is structured as a monorepo to ensure clean boundaries:
 
--   **`@pixengine/core`**: The brain. Handles policy evaluation and orchestrates the adapters.
--   **`@pixengine/adapter-engine-sharp`**: Sharp-based image processing engine.
+-   **`@pixengine/core`**: The brain. Handles policy evaluation, orchestration, and HTML markup generation.
+-   **`@pixengine/adapter-engine-sharp`**: Sharp-based image processing engine with rich metadata extraction.
 -   **`@pixengine/adapter-storage-local`**: Local filesystem storage.
 -   **`@pixengine/adapter-storage-s3`**: AWS S3 storage.
 -   **`@pixengine/adapter-storage-r2`**: Cloudflare R2 storage.
 -   **`@pixengine/adapter-storage-gcs`**: Google Cloud Storage.
 -   **`@pixengine/adapter-storage-azure`**: Azure Blob Storage.
--   **`@pixengine/middleware-express`**: Express.js middleware integration.
+-   **`@pixengine/middleware-express`**: Express.js upload middleware integration.
 -   **`@pixengine/middleware-nextjs`**: Next.js App Router handler integration.
+-   **`@pixengine/middleware-jit`**: On-demand (JIT) image transformation middleware.
 
 ---
 
@@ -125,12 +126,18 @@ PixEngine achieves **79.4% average file size reduction** across comprehensive te
 - [x] Cloud Storage Adapters (AWS S3, Cloudflare R2, Google Cloud Storage, Azure Blob Storage)
 - [x] Express.js Middleware
 - [x] Next.js App Router Handler
-- [ ] Metadata Extraction (EXIF, Color Palette)
+- [x] Rich Metadata Extraction (color space, alpha, density, EXIF)
+- [x] Extended Policy Context (filename, contentType, metadata)
 
-### Phase 3: Advanced Optimization
+### Phase 3: Developer Experience ✅ Completed
+- [x] On-demand (JIT) image transformation middleware
+- [x] HTML `<picture>` markup generation (`generatePicture()`)
+- [x] CI/CD with GitHub Actions
+- [x] ESLint + Prettier code quality tooling
+
+### Phase 4: Advanced Optimization
 - [ ] Smart Cropping (Face Detection)
 - [ ] Image "Lighthouse" score prediction
-- [ ] On-demand (JIT) delivery adapter
 - [ ] CDN Integration & Cache Management
 
 ---
@@ -214,15 +221,20 @@ Executes the image optimization pipeline.
 
 ### Policy
 
-A function that dynamically determines optimization strategy:
+A function that dynamically determines optimization strategy. Receives full image context including metadata:
 
 ```typescript
-type Policy = (ctx: {
+type PolicyContext = {
   width: number;
   height: number;
   bytes: number;
   format: string;
-}) => PolicyDecision;
+  filename: string;
+  contentType: string;
+  metadata: ImageMetadata; // Rich metadata from engine (space, hasAlpha, density, exif, etc.)
+};
+
+type Policy = (ctx: PolicyContext) => PolicyDecision;
 
 type PolicyDecision = {
   variants: Array<{
@@ -233,28 +245,72 @@ type PolicyDecision = {
 };
 ```
 
-**Example: Dynamic Policy**
+**Example: Content-Aware Policy**
 
 ```typescript
 const smartPolicy: Policy = (ctx) => {
-  // Large images: Generate more variants
+  // Transparent images: Use PNG to preserve alpha
+  if (ctx.metadata.hasAlpha) {
+    return {
+      variants: [
+        { width: 400, format: "png" },
+        { width: 800, format: "png" },
+      ],
+    };
+  }
+
+  // Large photos: Generate multiple modern formats
   if (ctx.width > 2000) {
     return {
       variants: [
-        { width: 400, format: "webp" },
-        { width: 800, format: "webp" },
-        { width: 1200, format: "avif" },
+        { width: 400, format: "webp", quality: 80 },
+        { width: 800, format: "webp", quality: 80 },
+        { width: 400, format: "avif", quality: 70 },
+        { width: 800, format: "avif", quality: 70 },
       ],
     };
   }
 
   // Small images: Keep it simple
   return {
-    variants: [
-      { width: 400, format: "webp" },
-    ],
+    variants: [{ width: 400, format: "webp" }],
   };
 };
+```
+
+### `generatePicture(manifest, options)`
+
+Converts a `Manifest` into a responsive `<picture>` HTML string.
+
+**Parameters:**
+- `manifest: Manifest` - Result from `optimize()`
+- `options: PictureOptions`
+  - `alt: string` - Alt text (required)
+  - `sizes?: string` - Responsive sizes attribute
+  - `className?: string` - CSS class name
+  - `loading?: "lazy" | "eager"` - Loading strategy (default: `"lazy"`)
+  - `decoding?: "async" | "sync" | "auto"` - Decoding hint (default: `"async"`)
+  - `fallbackFormat?: string` - Format for `<img>` fallback
+
+**Returns:** `string` (HTML)
+
+```typescript
+import { optimize, generatePicture } from "@pixengine/core";
+
+const manifest = await optimize({ /* ... */ });
+
+const html = generatePicture(manifest, {
+  alt: "Product photo",
+  sizes: "(max-width: 800px) 100vw, 800px",
+  className: "product-image",
+});
+
+// Output:
+// <picture>
+//   <source type="image/avif" srcset="/img/photo_400w.avif 400w, /img/photo_800w.avif 800w" sizes="...">
+//   <source type="image/webp" srcset="/img/photo_400w.webp 400w, /img/photo_800w.webp 800w" sizes="...">
+//   <img src="/img/photo_800w.jpeg" srcset="..." alt="Product photo" loading="lazy" ...>
+// </picture>
 ```
 
 ### Adapters
