@@ -1,4 +1,4 @@
-import type { ImageMetadata, PixEngineInput, TransformEngine } from "@pixengine/core";
+import type { CropStrategy, ImageMetadata, PixEngineInput, TransformEngine } from "@pixengine/core";
 import sharp from "sharp";
 
 function parseExif(exifBuffer: Buffer | undefined): Record<string, unknown> | undefined {
@@ -31,6 +31,7 @@ export class SharpEngine implements TransformEngine {
     height?: number;
     format?: "webp" | "avif" | "jpeg" | "png";
     quality?: number;
+    crop?: CropStrategy;
   }): Promise<{
     bytes: Uint8Array;
     format: string;
@@ -41,12 +42,32 @@ export class SharpEngine implements TransformEngine {
 
     // Resize (only if options are present)
     if (args.width || args.height) {
-      pipeline = pipeline.resize({
+      const resizeOptions: sharp.ResizeOptions = {
         width: args.width,
         height: args.height,
-        fit: "inside", // Maintain aspect ratio, fit inside
-        withoutEnlargement: true, // Do not enlarge if smaller than target
-      });
+        withoutEnlargement: true,
+      };
+
+      if (args.crop) {
+        // Cropping requires 'cover' fit
+        resizeOptions.fit = "cover";
+
+        if (args.crop === "entropy") {
+          resizeOptions.position = sharp.strategy.entropy;
+        } else if (args.crop === "attention") {
+          resizeOptions.position = sharp.strategy.attention;
+        } else {
+          // Map directional strings directly (center, top, right, etc.)
+          // Sharp supports: top, right, bottom, left, center, northeast, southeast, southwest, northwest
+          // Our policies usually use standard 5 positions, which map directly.
+          resizeOptions.position = args.crop;
+        }
+      } else {
+        // Default behavior: fit inside (no crop)
+        resizeOptions.fit = "inside";
+      }
+
+      pipeline = pipeline.resize(resizeOptions);
     }
 
     // Format conversion
