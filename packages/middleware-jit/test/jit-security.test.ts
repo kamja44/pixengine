@@ -8,7 +8,13 @@ import request from "supertest";
 // Mock Engine
 const mockEngine: TransformEngine = {
   probe: async () => ({}) as ImageMetadata,
-  transform: vi.fn(),
+  transform: vi.fn().mockResolvedValue({
+    bytes: new Uint8Array([1, 2, 3]),
+    width: 100,
+    height: 100,
+    format: "webp",
+    metrics: {},
+  }),
 };
 
 // Mock Source

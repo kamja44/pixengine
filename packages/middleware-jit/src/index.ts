@@ -3,6 +3,9 @@ import type { TransformEngine, CacheAdapter } from "@pixengine/core";
 import { verifyUrl } from "@pixengine/core";
 import { createHash } from "crypto";
 import { LRUCache } from "lru-cache";
+import { trace, SpanStatusCode } from "@opentelemetry/api";
+
+const tracer = trace.getTracer("pixengine-jit");
 
 // 1. Types & Interfaces
 export type SourceResolver = (
@@ -143,131 +146,194 @@ export function jitMiddleware(config: JitConfig): RequestHandler {
   const cache = config.cache ?? new MemoryCache(cacheTtl);
 
   return async (req: Request, res: Response, _next: NextFunction) => {
-    try {
-      // 0. Security Verification
-      if (config.security?.secret) {
-        // req.originalUrl includes the base path (e.g., /img/photo.jpg?w=100)
-        // verifyUrl expects path + query
-        const fullPath = req.originalUrl || req.url;
-        const verified = verifyUrl(fullPath, config.security.secret);
+    return tracer.startActiveSpan("pixengine.request", async (span) => {
+      try {
+        span.setAttribute("app.component", "jit-middleware");
 
-        if (!verified) {
-          res.status(403).json({ error: "Invalid signature" });
+        // 0. Security Verification
+        if (config.security?.secret) {
+          // req.originalUrl includes the base path (e.g., /img/photo.jpg?w=100)
+          // verifyUrl expects path + query
+          const fullPath = req.originalUrl || req.url;
+          const verified = verifyUrl(fullPath, config.security.secret);
+
+          if (!verified) {
+            span.setAttribute("security.verified", false);
+            span.setStatus({ code: SpanStatusCode.ERROR, message: "Invalid signature" });
+            res.status(403).json({ error: "Invalid signature" });
+            span.end();
+            return;
+          }
+          span.setAttribute("security.verified", true);
+        }
+
+        // 1. Extract image key from URL path
+        // Express routing: if mounted on /img, req.path is /photo.jpg
+        const key = req.params[0] || req.params.key;
+
+        if (!key) {
+          span.setStatus({ code: SpanStatusCode.ERROR, message: "No image key provided" });
+          res.status(400).json({ error: "No image key provided" });
+          span.end();
           return;
         }
-      }
+        span.setAttribute("image.key", key);
 
-      // 1. Extract image key from URL path
-      // Express routing: if mounted on /img, req.path is /photo.jpg
-      const key = req.params[0] || req.params.key;
+        // 2. Parse and validate query params
+        const result = parseParams(req.query, config);
+        if ("error" in result) {
+          span.setStatus({ code: SpanStatusCode.ERROR, message: result.error });
+          res.status(400).json({ error: result.error });
+          span.end();
+          return;
+        }
 
-      if (!key) {
-        res.status(400).json({ error: "No image key provided" });
-        return;
-      }
+        const format = result.format ?? defaultFormat;
 
-      // 2. Parse and validate query params
-      const result = parseParams(req.query, config);
-      if ("error" in result) {
-        res.status(400).json({ error: result.error });
-        return;
-      }
+        // Determine transformation params
+        const transformParams: TransformParams = {
+          width: result.width,
+          height: result.height,
+          format,
+          quality: result.quality,
+        };
 
-      const format = result.format ?? defaultFormat;
+        if (transformParams.width) span.setAttribute("transform.width", transformParams.width);
+        if (transformParams.height) span.setAttribute("transform.height", transformParams.height);
+        if (transformParams.format) span.setAttribute("transform.format", transformParams.format);
 
-      // Determine transformation params
-      const transformParams: TransformParams = {
-        width: result.width,
-        height: result.height,
-        format,
-        quality: result.quality,
-      };
+        // 3. Check Cache
+        const cacheKey = generateCacheKey(key, transformParams);
+        const cached = await tracer.startActiveSpan("pixengine.cache.check", async (cacheSpan) => {
+          cacheSpan.setAttribute("cache.key", cacheKey);
+          const hit = await cache.get(cacheKey);
+          cacheSpan.setAttribute("cache.hit", !!hit);
+          cacheSpan.end();
+          return hit;
+        });
 
-      // 3. Check Cache
-      const cacheKey = generateCacheKey(key, transformParams);
-      const cached = await cache.get(cacheKey);
+        if (cached) {
+          span.setAttribute("cache.status", "HIT");
+          const etag = generateETag(cached);
+          if (req.headers["if-none-match"] === etag) {
+            res.status(304).end();
+            span.end();
+            return;
+          }
 
-      if (cached) {
-        const etag = generateETag(cached);
+          const contentType = transformParams.format
+            ? `image/${transformParams.format}`
+            : "application/octet-stream";
+
+          res.set("Content-Type", contentType);
+          res.set("Cache-Control", cacheControl);
+          res.set("X-PixEngine-Cache", "HIT");
+          res.set("ETag", etag);
+          res.send(Buffer.from(cached));
+          span.end();
+          return;
+        }
+        span.setAttribute("cache.status", "MISS");
+
+        // 4. Resolve source image (Cache Miss)
+        const source = await tracer.startActiveSpan(
+          "pixengine.source.fetch",
+          async (sourceSpan) => {
+            sourceSpan.setAttribute("image.key", key);
+            const src = await config.source(key);
+            if (src) {
+              sourceSpan.setAttribute("source.size", src.bytes.length);
+              sourceSpan.setAttribute("source.contentType", src.contentType);
+            }
+            sourceSpan.end();
+            return src;
+          },
+        );
+
+        if (!source) {
+          span.setStatus({ code: SpanStatusCode.ERROR, message: "Image not found" });
+          res.status(404).json({ error: "Image not found" });
+          span.end();
+          return;
+        }
+
+        // 5. Check if transformation is needed
+        const effectiveFormat = result.format ?? defaultFormat;
+        const needsTransform = result.width || result.height || effectiveFormat;
+
+        if (!needsTransform) {
+          const etag = generateETag(source.bytes);
+          if (req.headers["if-none-match"] === etag) {
+            res.status(304).end();
+            span.end();
+            return;
+          }
+          res.set("Content-Type", source.contentType);
+          res.set("Cache-Control", cacheControl);
+          res.set("X-PixEngine-Cache", "MISS");
+          res.set("ETag", etag);
+          res.send(Buffer.from(source.bytes));
+          span.end();
+          return;
+        }
+
+        // 6. Transform
+        const input = {
+          filename: key,
+          bytes: source.bytes,
+          contentType: source.contentType,
+        };
+
+        const transformed = await tracer.startActiveSpan(
+          "pixengine.transform",
+          async (transformSpan) => {
+            try {
+              const res = await config.engine.transform({
+                input,
+                width: result.width,
+                height: result.height,
+                format: effectiveFormat,
+                quality: result.quality,
+              });
+              transformSpan.setAttribute("transform.output_size", res.bytes.length);
+              return res;
+            } catch (e) {
+              transformSpan.setStatus({ code: SpanStatusCode.ERROR, message: "Transform failed" });
+              throw e;
+            } finally {
+              transformSpan.end();
+            }
+          },
+        );
+
+        // 7. Save to Cache
+        await cache.set(cacheKey, transformed.bytes, cacheTtl);
+
+        // 8. Respond with transformed image
+        const contentType = `image/${transformed.format}`;
+        const etag = generateETag(transformed.bytes);
+
         if (req.headers["if-none-match"] === etag) {
           res.status(304).end();
+          span.end();
           return;
         }
-
-        const contentType = transformParams.format
-          ? `image/${transformParams.format}`
-          : "application/octet-stream";
 
         res.set("Content-Type", contentType);
         res.set("Cache-Control", cacheControl);
-        res.set("X-PixEngine-Cache", "HIT");
-        res.set("ETag", etag);
-        res.send(Buffer.from(cached));
-        return;
-      }
-
-      // 4. Resolve source image (Cache Miss)
-      const source = await config.source(key);
-      if (!source) {
-        res.status(404).json({ error: "Image not found" });
-        return;
-      }
-
-      // 5. Check if transformation is needed
-      const effectiveFormat = result.format ?? defaultFormat;
-      const needsTransform = result.width || result.height || effectiveFormat;
-
-      if (!needsTransform) {
-        const etag = generateETag(source.bytes);
-        if (req.headers["if-none-match"] === etag) {
-          res.status(304).end();
-          return;
-        }
-        res.set("Content-Type", source.contentType);
-        res.set("Cache-Control", cacheControl);
         res.set("X-PixEngine-Cache", "MISS");
         res.set("ETag", etag);
-        res.send(Buffer.from(source.bytes));
-        return;
+        res.send(Buffer.from(transformed.bytes));
+        span.end();
+      } catch (error) {
+        span.recordException(error instanceof Error ? error : new Error(String(error)));
+        span.setStatus({ code: SpanStatusCode.ERROR, message: "Internal Server Error" });
+        res.status(500).json({
+          error: "Image transformation failed",
+          message: error instanceof Error ? error.message : "Unknown error",
+        });
+        span.end();
       }
-
-      // 6. Transform
-      const input = {
-        filename: key,
-        bytes: source.bytes,
-        contentType: source.contentType,
-      };
-
-      const transformed = await config.engine.transform({
-        input,
-        width: result.width,
-        height: result.height,
-        format: effectiveFormat,
-        quality: result.quality,
-      });
-
-      // 7. Save to Cache
-      await cache.set(cacheKey, transformed.bytes, cacheTtl);
-
-      // 8. Respond with transformed image
-      const contentType = `image/${transformed.format}`;
-      const etag = generateETag(transformed.bytes);
-
-      if (req.headers["if-none-match"] === etag) {
-        res.status(304).end();
-        return;
-      }
-
-      res.set("Content-Type", contentType);
-      res.set("Cache-Control", cacheControl);
-      res.set("X-PixEngine-Cache", "MISS");
-      res.set("ETag", etag);
-      res.send(Buffer.from(transformed.bytes));
-    } catch (error) {
-      res.status(500).json({
-        error: "Image transformation failed",
-        message: error instanceof Error ? error.message : "Unknown error",
-      });
-    }
+    });
   };
 }
