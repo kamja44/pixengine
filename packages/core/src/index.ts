@@ -254,3 +254,5 @@ export async function optimize(args: {
     variants,
   };
 }
+
+export * from "./dsl.js";
