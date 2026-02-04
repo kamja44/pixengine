@@ -77,6 +77,95 @@ export type PolicyContext = {
 
 export type Policy = (ctx: PolicyContext) => PolicyDecision;
 
+export type PictureOptions = {
+  alt: string;
+  sizes?: string;
+  className?: string;
+  loading?: "lazy" | "eager";
+  decoding?: "async" | "sync" | "auto";
+  fallbackFormat?: string;
+};
+
+const FORMAT_PRIORITY: Record<string, number> = {
+  avif: 0,
+  webp: 1,
+  jpeg: 2,
+  png: 3,
+};
+
+export function generatePicture(manifest: Manifest, options: PictureOptions): string {
+  const { alt, sizes, className, loading = "lazy", decoding = "async", fallbackFormat } = options;
+
+  if (manifest.variants.length === 0) {
+    const attrs = [`alt="${alt}"`, `loading="${loading}"`, `decoding="${decoding}"`];
+    if (className) attrs.push(`class="${className}"`);
+    return `<img ${attrs.join(" ")}>`;
+  }
+
+  // Group variants by format, sorted by width within each group
+  const byFormat = new Map<string, Variant[]>();
+  for (const variant of manifest.variants) {
+    const list = byFormat.get(variant.format) ?? [];
+    list.push(variant);
+    byFormat.set(variant.format, list);
+  }
+  for (const variants of byFormat.values()) {
+    variants.sort((a, b) => a.width - b.width);
+  }
+
+  // Determine fallback: explicit option, or lowest-priority format
+  const formats = [...byFormat.keys()];
+  const fallback =
+    fallbackFormat && byFormat.has(fallbackFormat)
+      ? fallbackFormat
+      : formats.sort((a, b) => (FORMAT_PRIORITY[b] ?? 99) - (FORMAT_PRIORITY[a] ?? 99))[0];
+
+  // Sort source formats by priority (most modern first)
+  const sourceFormats = formats
+    .filter((f) => f !== fallback)
+    .sort((a, b) => (FORMAT_PRIORITY[a] ?? 99) - (FORMAT_PRIORITY[b] ?? 99));
+
+  // Build <source> elements
+  const sources: string[] = [];
+  for (const format of sourceFormats) {
+    const variants = byFormat.get(format)!;
+    const srcset = variants.map((v) => `${v.url} ${v.width}w`).join(", ");
+    let source = `<source type="image/${format}" srcset="${srcset}"`;
+    if (sizes) source += ` sizes="${sizes}"`;
+    source += ">";
+    sources.push(source);
+  }
+
+  // Build <img> fallback
+  const fallbackVariants = byFormat.get(fallback)!;
+  const imgSrc = fallbackVariants[fallbackVariants.length - 1].url;
+  const imgSrcset = fallbackVariants.map((v) => `${v.url} ${v.width}w`).join(", ");
+
+  const imgAttrs: string[] = [`src="${imgSrc}"`, `srcset="${imgSrcset}"`];
+  if (sizes) imgAttrs.push(`sizes="${sizes}"`);
+  imgAttrs.push(`alt="${alt}"`);
+  if (className) imgAttrs.push(`class="${className}"`);
+  imgAttrs.push(`loading="${loading}"`);
+  imgAttrs.push(`decoding="${decoding}"`);
+  imgAttrs.push(`width="${manifest.original.width}"`);
+  imgAttrs.push(`height="${manifest.original.height}"`);
+
+  const img = `<img ${imgAttrs.join(" ")}>`;
+
+  if (sources.length === 0) {
+    return img;
+  }
+
+  const lines = ["<picture>"];
+  for (const source of sources) {
+    lines.push(`  ${source}`);
+  }
+  lines.push(`  ${img}`);
+  lines.push("</picture>");
+
+  return lines.join("\n");
+}
+
 export async function optimize(args: {
   input: PixEngineInput;
   policy: Policy;

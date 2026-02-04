@@ -87,15 +87,16 @@ const ProductImagePolicy = {
 
 깔끔한 경계 처리를 위해 모노레포 구조로 설계되었습니다:
 
--   **`@pixengine/core`**: 두뇌 역할. 정책을 평가하고 어댑터들을 조율합니다.
--   **`@pixengine/adapter-engine-sharp`**: Sharp 기반 이미지 처리 엔진.
+-   **`@pixengine/core`**: 두뇌 역할. 정책 평가, 오케스트레이션, HTML 마크업 생성을 담당합니다.
+-   **`@pixengine/adapter-engine-sharp`**: Sharp 기반 이미지 처리 엔진 (리치 메타데이터 추출 포함).
 -   **`@pixengine/adapter-storage-local`**: 로컬 파일시스템 저장소.
 -   **`@pixengine/adapter-storage-s3`**: AWS S3 저장소.
 -   **`@pixengine/adapter-storage-r2`**: Cloudflare R2 저장소.
 -   **`@pixengine/adapter-storage-gcs`**: Google Cloud Storage.
 -   **`@pixengine/adapter-storage-azure`**: Azure Blob Storage.
--   **`@pixengine/middleware-express`**: Express.js 미들웨어 통합.
+-   **`@pixengine/middleware-express`**: Express.js 업로드 미들웨어 통합.
 -   **`@pixengine/middleware-nextjs`**: Next.js App Router 핸들러 통합.
+-   **`@pixengine/middleware-jit`**: 온디맨드(JIT) 이미지 변환 미들웨어.
 
 ---
 
@@ -125,12 +126,18 @@ PixEngine은 종합 테스트에서 **평균 79.4% 파일 크기 감소**를 달
 - [x] 클라우드 저장소 어댑터 (AWS S3, Cloudflare R2, Google Cloud Storage, Azure Blob Storage)
 - [x] Express.js 미들웨어
 - [x] Next.js App Router 핸들러
-- [ ] 메타데이터 추출 기능 (EXIF, 컬러 팔레트)
+- [x] 리치 메타데이터 추출 (색공간, 알파 채널, 밀도, EXIF)
+- [x] 확장된 정책 컨텍스트 (filename, contentType, metadata)
 
-### 3단계: 고급 최적화
+### 3단계: 개발자 경험 ✅ 완료
+- [x] 온디맨드(JIT) 이미지 변환 미들웨어
+- [x] HTML `<picture>` 마크업 생성 (`generatePicture()`)
+- [x] CI/CD (GitHub Actions)
+- [x] ESLint + Prettier 코드 품질 도구
+
+### 4단계: 고급 최적화
 - [ ] 스마트 크로핑 (얼굴 인식 등)
 - [ ] 이미지 "Lighthouse" 점수 예측
-- [ ] 온디맨드(JIT) 실시간 변환 어댑터
 - [ ] CDN 통합 및 캐시 관리
 
 ---
@@ -214,15 +221,20 @@ console.log(manifest);
 
 ### 정책 (Policy)
 
-동적으로 최적화 전략을 결정하는 함수:
+동적으로 최적화 전략을 결정하는 함수. 메타데이터를 포함한 전체 이미지 컨텍스트를 전달받습니다:
 
 ```typescript
-type Policy = (ctx: {
+type PolicyContext = {
   width: number;
   height: number;
   bytes: number;
   format: string;
-}) => PolicyDecision;
+  filename: string;
+  contentType: string;
+  metadata: ImageMetadata; // 엔진의 리치 메타데이터 (색공간, 알파, 밀도, EXIF 등)
+};
+
+type Policy = (ctx: PolicyContext) => PolicyDecision;
 
 type PolicyDecision = {
   variants: Array<{
@@ -233,28 +245,72 @@ type PolicyDecision = {
 };
 ```
 
-**예시: 동적 정책**
+**예시: 콘텐츠 인식 정책**
 
 ```typescript
 const smartPolicy: Policy = (ctx) => {
-  // 큰 이미지: 더 많은 variant 생성
+  // 투명 이미지: 알파 채널 보존을 위해 PNG 사용
+  if (ctx.metadata.hasAlpha) {
+    return {
+      variants: [
+        { width: 400, format: "png" },
+        { width: 800, format: "png" },
+      ],
+    };
+  }
+
+  // 큰 사진: 다양한 최신 포맷 생성
   if (ctx.width > 2000) {
     return {
       variants: [
-        { width: 400, format: "webp" },
-        { width: 800, format: "webp" },
-        { width: 1200, format: "avif" },
+        { width: 400, format: "webp", quality: 80 },
+        { width: 800, format: "webp", quality: 80 },
+        { width: 400, format: "avif", quality: 70 },
+        { width: 800, format: "avif", quality: 70 },
       ],
     };
   }
 
   // 작은 이미지: 간단하게
   return {
-    variants: [
-      { width: 400, format: "webp" },
-    ],
+    variants: [{ width: 400, format: "webp" }],
   };
 };
+```
+
+### `generatePicture(manifest, options)`
+
+`Manifest`를 반응형 `<picture>` HTML 문자열로 변환합니다.
+
+**Parameters:**
+- `manifest: Manifest` - `optimize()`의 결과물
+- `options: PictureOptions`
+  - `alt: string` - 대체 텍스트 (필수)
+  - `sizes?: string` - 반응형 sizes 속성
+  - `className?: string` - CSS 클래스명
+  - `loading?: "lazy" | "eager"` - 로딩 전략 (기본: `"lazy"`)
+  - `decoding?: "async" | "sync" | "auto"` - 디코딩 힌트 (기본: `"async"`)
+  - `fallbackFormat?: string` - `<img>` 폴백 포맷
+
+**Returns:** `string` (HTML)
+
+```typescript
+import { optimize, generatePicture } from "@pixengine/core";
+
+const manifest = await optimize({ /* ... */ });
+
+const html = generatePicture(manifest, {
+  alt: "상품 사진",
+  sizes: "(max-width: 800px) 100vw, 800px",
+  className: "product-image",
+});
+
+// 출력:
+// <picture>
+//   <source type="image/avif" srcset="/img/photo_400w.avif 400w, /img/photo_800w.avif 800w" sizes="...">
+//   <source type="image/webp" srcset="/img/photo_400w.webp 400w, /img/photo_800w.webp 800w" sizes="...">
+//   <img src="/img/photo_800w.jpeg" srcset="..." alt="상품 사진" loading="lazy" ...>
+// </picture>
 ```
 
 ### 어댑터 (Adapters)

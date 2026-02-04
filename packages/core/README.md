@@ -17,26 +17,26 @@ yarn add @pixengine/core
 ## Quick Start
 
 ```typescript
-import { optimize } from '@pixengine/core';
-import { SharpEngine } from '@pixengine/adapter-engine-sharp';
-import { LocalStorage } from '@pixengine/adapter-storage-local';
+import { optimize } from "@pixengine/core";
+import { SharpEngine } from "@pixengine/adapter-engine-sharp";
+import { LocalStorage } from "@pixengine/adapter-storage-local";
 
 const manifest = await optimize({
   input: {
-    filename: 'photo.jpg',
+    filename: "photo.jpg",
     bytes: imageBuffer,
-    contentType: 'image/jpeg',
+    contentType: "image/jpeg",
   },
   policy: (ctx) => ({
     variants: [
-      { width: 400, format: 'webp', quality: 80 },
-      { width: 800, format: 'webp', quality: 85 },
+      { width: 400, format: "webp", quality: 80 },
+      { width: 800, format: "webp", quality: 85 },
     ],
   }),
   engine: new SharpEngine(),
   storage: new LocalStorage({
-    baseDir: './uploads',
-    baseUrl: 'https://example.com/uploads',
+    baseDir: "./uploads",
+    baseUrl: "https://example.com/uploads",
   }),
 });
 
@@ -55,29 +55,34 @@ console.log(manifest);
 - 🎯 **Policy-First Architecture**: Define optimization strategies as executable functions
 - 🔌 **Pluggable Adapters**: Swap engines and storage backends without code changes
 - 📦 **Automatic Variant Management**: Generate multiple formats and sizes from single source
-- 📊 **Comprehensive Metadata**: Full manifest with size, format, and URL information
+- 📊 **Rich Metadata**: Full image metadata (color space, alpha, density, EXIF) available in policy context
+- 🖼️ **HTML Markup Generation**: Convert manifests to responsive `<picture>` elements
 - 🚀 **TypeScript Native**: Full type safety and IntelliSense support
 
 ## Core Concepts
 
 ### Policy
 
-A policy is a function that determines what image variants to generate:
+A policy is a function that determines what image variants to generate. It receives a context object containing image metadata:
 
 ```typescript
-import { Policy } from '@pixengine/core';
+import { Policy } from "@pixengine/core";
 
 const responsivePolicy: Policy = (ctx) => {
-  // ctx contains: width, height, bytes, format
+  // ctx contains:
+  // - width, height, bytes, format: Basic image info
+  // - filename, contentType: File info
+  // - metadata: Rich metadata (hasAlpha, space, density, exif, etc.)
+
   const variants = [];
 
   if (ctx.width > 1200) {
-    variants.push({ width: 1200, format: 'webp', quality: 85 });
+    variants.push({ width: 1200, format: "webp", quality: 85 });
   }
   if (ctx.width > 800) {
-    variants.push({ width: 800, format: 'webp', quality: 80 });
+    variants.push({ width: 800, format: "webp", quality: 80 });
   }
-  variants.push({ width: 400, format: 'webp', quality: 75 });
+  variants.push({ width: 400, format: "webp", quality: 75 });
 
   return { variants };
 };
@@ -93,13 +98,14 @@ interface TransformEngine {
     width: number;
     height: number;
     format: string;
+    // ...other metadata
   }>;
 
   transform(args: {
     input: PixEngineInput;
     width?: number;
     height?: number;
-    format?: 'webp' | 'avif' | 'jpeg' | 'png';
+    format?: "webp" | "avif" | "jpeg" | "png";
     quality?: number;
   }): Promise<{
     bytes: Uint8Array;
@@ -146,18 +152,39 @@ Main orchestration function.
 - `original` - Original image metadata
 - `variants` - Array of generated variants with URLs
 
-## Adapters
+### `generatePicture(manifest, options)`
 
-### Official Adapters
+Converts a `Manifest` into a responsive `<picture>` HTML string.
+
+**Parameters:**
+
+- `manifest: Manifest` - Result from `optimize()`
+- `options: PictureOptions`
+  - `alt: string` - Alt text (required)
+  - `sizes?: string` - Responsive sizes attribute
+  - `className?: string` - CSS class name
+  - `loading?: "lazy" | "eager"`
+  - `decoding?: "async" | "sync" | "auto"`
+  - `fallbackFormat?: string`
+
+**Returns:** `string` (HTML)
+
+## Ecosystem
+
+### Adapters
 
 - [`@pixengine/adapter-engine-sharp`](https://www.npmjs.com/package/@pixengine/adapter-engine-sharp) - Sharp-based image processing
 - [`@pixengine/adapter-storage-local`](https://www.npmjs.com/package/@pixengine/adapter-storage-local) - Local filesystem storage
+- [`@pixengine/adapter-storage-s3`](https://www.npmjs.com/package/@pixengine/adapter-storage-s3) - AWS S3 storage
+- `@pixengine/adapter-storage-r2` - Cloudflare R2 storage
+- `@pixengine/adapter-storage-gcs` - Google Cloud Storage
+- `@pixengine/adapter-storage-azure` - Azure Blob Storage
 
-### Coming Soon
+### Middleware
 
-- `@pixengine/adapter-storage-s3` - AWS S3 storage
 - `@pixengine/middleware-express` - Express.js middleware
-- `@pixengine/middleware-nextjs` - Next.js middleware
+- `@pixengine/middleware-nextjs` - Next.js App Router handler
+- `@pixengine/middleware-jit` - On-demand (JIT) image transformation
 
 ## Examples
 

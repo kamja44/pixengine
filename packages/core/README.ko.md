@@ -17,26 +17,26 @@ yarn add @pixengine/core
 ## 빠른 시작
 
 ```typescript
-import { optimize } from '@pixengine/core';
-import { SharpEngine } from '@pixengine/adapter-engine-sharp';
-import { LocalStorage } from '@pixengine/adapter-storage-local';
+import { optimize } from "@pixengine/core";
+import { SharpEngine } from "@pixengine/adapter-engine-sharp";
+import { LocalStorage } from "@pixengine/adapter-storage-local";
 
 const manifest = await optimize({
   input: {
-    filename: 'photo.jpg',
+    filename: "photo.jpg",
     bytes: imageBuffer,
-    contentType: 'image/jpeg',
+    contentType: "image/jpeg",
   },
   policy: (ctx) => ({
     variants: [
-      { width: 400, format: 'webp', quality: 80 },
-      { width: 800, format: 'webp', quality: 85 },
+      { width: 400, format: "webp", quality: 80 },
+      { width: 800, format: "webp", quality: 85 },
     ],
   }),
   engine: new SharpEngine(),
   storage: new LocalStorage({
-    baseDir: './uploads',
-    baseUrl: 'https://example.com/uploads',
+    baseDir: "./uploads",
+    baseUrl: "https://example.com/uploads",
   }),
 });
 
@@ -62,22 +62,26 @@ console.log(manifest);
 
 ### 정책 (Policy)
 
-정책은 생성할 이미지 변형을 결정하는 함수입니다:
+정책은 생성할 이미지 변형을 결정하는 함수입니다. 이미지 메타데이터를 포함한 컨텍스트 객체를 전달받습니다:
 
 ```typescript
-import { Policy } from '@pixengine/core';
+import { Policy } from "@pixengine/core";
 
 const responsivePolicy: Policy = (ctx) => {
-  // ctx에는 width, height, bytes, format이 포함됩니다
+  // ctx 포함 정보:
+  // - width, height, bytes, format: 기본 이미지 정보
+  // - filename, contentType: 파일 정보
+  // - metadata: 리치 메타데이터 (hasAlpha, space, density, exif 등)
+
   const variants = [];
 
   if (ctx.width > 1200) {
-    variants.push({ width: 1200, format: 'webp', quality: 85 });
+    variants.push({ width: 1200, format: "webp", quality: 85 });
   }
   if (ctx.width > 800) {
-    variants.push({ width: 800, format: 'webp', quality: 80 });
+    variants.push({ width: 800, format: "webp", quality: 80 });
   }
-  variants.push({ width: 400, format: 'webp', quality: 75 });
+  variants.push({ width: 400, format: "webp", quality: 75 });
 
   return { variants };
 };
@@ -93,13 +97,14 @@ interface TransformEngine {
     width: number;
     height: number;
     format: string;
+    // ...기타 메타데이터
   }>;
 
   transform(args: {
     input: PixEngineInput;
     width?: number;
     height?: number;
-    format?: 'webp' | 'avif' | 'jpeg' | 'png';
+    format?: "webp" | "avif" | "jpeg" | "png";
     quality?: number;
   }): Promise<{
     bytes: Uint8Array;
@@ -146,18 +151,39 @@ interface StorageAdapter {
 - `original` - 원본 이미지 메타데이터
 - `variants` - URL이 포함된 생성된 변형 배열
 
-## 어댑터
+### `generatePicture(manifest, options)`
 
-### 공식 어댑터
+`Manifest`를 반응형 `<picture>` HTML 문자열로 변환합니다.
+
+**매개변수:**
+
+- `manifest: Manifest` - `optimize()`의 결과물
+- `options: PictureOptions`
+  - `alt: string` - 대체 텍스트 (필수)
+  - `sizes?: string` - 반응형 sizes 속성
+  - `className?: string` - CSS 클래스명
+  - `loading?: "lazy" | "eager"`
+  - `decoding?: "async" | "sync" | "auto"`
+  - `fallbackFormat?: string`
+
+**반환값:** `string` (HTML)
+
+## 생태계 (Ecosystem)
+
+### 어댑터 (Adapters)
 
 - [`@pixengine/adapter-engine-sharp`](https://www.npmjs.com/package/@pixengine/adapter-engine-sharp) - Sharp 기반 이미지 처리
 - [`@pixengine/adapter-storage-local`](https://www.npmjs.com/package/@pixengine/adapter-storage-local) - 로컬 파일시스템 스토리지
+- [`@pixengine/adapter-storage-s3`](https://www.npmjs.com/package/@pixengine/adapter-storage-s3) - AWS S3 스토리지
+- `@pixengine/adapter-storage-r2` - Cloudflare R2 스토리지
+- `@pixengine/adapter-storage-gcs` - Google Cloud Storage
+- `@pixengine/adapter-storage-azure` - Azure Blob Storage
 
-### 개발 예정
+### 미들웨어 (Middleware)
 
-- `@pixengine/adapter-storage-s3` - AWS S3 스토리지
 - `@pixengine/middleware-express` - Express.js 미들웨어
-- `@pixengine/middleware-nextjs` - Next.js 미들웨어
+- `@pixengine/middleware-nextjs` - Next.js App Router 핸들러
+- `@pixengine/middleware-jit` - 온디맨드(JIT) 이미지 변환 미들웨어
 
 ## 예제
 
