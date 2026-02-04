@@ -1,6 +1,6 @@
 {
   "name": "@pixengine/adapter-storage-s3",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "AWS S3 storage adapter for PixEngine",
   "keywords": [
     "pixengine",
