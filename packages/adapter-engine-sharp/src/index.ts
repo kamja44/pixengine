@@ -1,8 +1,13 @@
-import type { PixEngineInput, TransformEngine } from "@pixengine/core";
+import type { ImageMetadata, PixEngineInput, TransformEngine } from "@pixengine/core";
 import sharp from "sharp";
 
+function parseExif(exifBuffer: Buffer | undefined): Record<string, unknown> | undefined {
+  if (!exifBuffer || exifBuffer.length === 0) return undefined;
+  return { raw: `${exifBuffer.length} bytes` };
+}
+
 export class SharpEngine implements TransformEngine {
-  async probe(input: PixEngineInput): Promise<{ width: number; height: number; format: string }> {
+  async probe(input: PixEngineInput): Promise<ImageMetadata> {
     const image = sharp(input.bytes);
     const metadata = await image.metadata();
 
@@ -10,6 +15,13 @@ export class SharpEngine implements TransformEngine {
       width: metadata.width ?? 0,
       height: metadata.height ?? 0,
       format: metadata.format ?? "unknown",
+      space: metadata.space,
+      channels: metadata.channels,
+      depth: metadata.depth,
+      density: metadata.density,
+      hasAlpha: metadata.hasAlpha,
+      orientation: metadata.orientation,
+      exif: parseExif(metadata.exif),
     };
   }
 

@@ -4,6 +4,19 @@ export type PixEngineInput = {
   contentType: string;
 };
 
+export type ImageMetadata = {
+  width: number;
+  height: number;
+  format: string;
+  space?: string;
+  channels?: number;
+  depth?: string;
+  density?: number;
+  hasAlpha?: boolean;
+  orientation?: number;
+  exif?: Record<string, unknown>;
+};
+
 export type Variant = {
   key: string;
   url: string;
@@ -28,7 +41,7 @@ export interface StorageAdapter {
 }
 
 export interface TransformEngine {
-  probe(input: PixEngineInput): Promise<{ width: number; height: number; format: string }>;
+  probe(input: PixEngineInput): Promise<ImageMetadata>;
 
   transform(args: {
     input: PixEngineInput;
@@ -52,12 +65,17 @@ export type PolicyDecision = {
   }>;
 };
 
-export type Policy = (ctx: {
+export type PolicyContext = {
   width: number;
   height: number;
   bytes: number;
   format: string;
-}) => PolicyDecision;
+  filename: string;
+  contentType: string;
+  metadata: ImageMetadata;
+};
+
+export type Policy = (ctx: PolicyContext) => PolicyDecision;
 
 export async function optimize(args: {
   input: PixEngineInput;
@@ -76,6 +94,9 @@ export async function optimize(args: {
     height: metadata.height,
     bytes: input.bytes.length,
     format: metadata.format,
+    filename: input.filename,
+    contentType: input.contentType,
+    metadata,
   });
 
   // 3. Save original
