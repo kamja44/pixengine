@@ -1,6 +1,6 @@
 {
   "name": "@pixengine/core",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Policy-based image optimization engine for modern web applications",
   "keywords": [
     "image",
