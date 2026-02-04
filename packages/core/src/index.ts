@@ -17,6 +17,8 @@ export type ImageMetadata = {
   exif?: Record<string, unknown>;
 };
 
+export type CropStrategy = "center" | "top" | "right" | "bottom" | "left" | "entropy" | "attention";
+
 export type Variant = {
   key: string;
   url: string;
@@ -24,6 +26,7 @@ export type Variant = {
   height: number;
   format: string;
   bytes: number;
+  crop?: CropStrategy;
 };
 
 export type Manifest = {
@@ -49,6 +52,7 @@ export interface TransformEngine {
     height?: number;
     format?: "webp" | "avif" | "jpeg" | "png";
     quality?: number;
+    crop?: CropStrategy;
   }): Promise<{
     bytes: Uint8Array;
     width: number;
@@ -62,6 +66,7 @@ export type PolicyDecision = {
     width: number;
     format: "webp" | "avif" | "jpeg" | "png";
     quality?: number;
+    crop?: CropStrategy;
   }>;
 };
 
@@ -207,6 +212,7 @@ export async function optimize(args: {
       width: variantSpec.width,
       format: variantSpec.format,
       quality: variantSpec.quality,
+      crop: variantSpec.crop,
     });
 
     // Generate variant key (e.g., "variants/test_200w.webp")
@@ -233,6 +239,7 @@ export async function optimize(args: {
       height: transformed.height,
       format: transformed.format,
       bytes: transformed.bytes.length,
+      crop: variantSpec.crop,
     });
   }
 
