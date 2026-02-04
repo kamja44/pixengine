@@ -1,0 +1,14 @@
+{
+  "name": "@pixengine/docs",
+  "version": "0.3.0",
+  "private": true,
+  "scripts": {
+    "dev": "vitepress dev src",
+    "build": "vitepress build src",
+    "preview": "vitepress preview src"
+  },
+  "devDependencies": {
+    "vitepress": "^1.0.0-rc.31",
+    "vue": "^3.4.0"
+  }
+}
